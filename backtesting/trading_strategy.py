@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Iterable, Tuple
 
 from .oscillators import Oscillator
+from .oscillators.oscillator_builder import OscillatorBuilder
 from .timeframes import Timeframes
 from .broker import Broker
 from .timeframes_candle import TimeframesCandle
@@ -13,12 +14,18 @@ from .broker.orders import MarketBuy, MarketSell, LimitBuy, LimitSell
 class TradingStrategy(ABC):
 
     using_candles: Tuple[Timeframes] = None
+    oscillators: Tuple[OscillatorBuilder] = None
     analyzer_t = MarketDataAnalyzer
 
     def __init__(self, market_data: CandlesProvider, broker: Broker):
         self._market_data = market_data
         self._broker = broker
-        self._oscillators = self.analyzer_t(market_data)
+
+        if self.oscillators:
+            self._oscillators = self.analyzer_t(
+                market_data, self.oscillators)
+        else:
+            self._oscillators = None
 
         if self.using_candles:
             self._timeframes_candle = TimeframesCandle(
