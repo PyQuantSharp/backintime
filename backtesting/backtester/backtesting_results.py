@@ -54,9 +54,10 @@ class BacktestingResults:
 
         profitable = self._stat['profitable_positions']
         total = self._stat['positions']
-        self._stat['win_rate'] = (profitable / total)*100
-        self._stat['average_profit, %'] = all_profit/profitable
-        self._stat['average_loss, %'] = all_losses/(total - profitable)
+        if total:
+            self._stat['win_rate'] = (profitable / total)*100
+            self._stat['average_profit, %'] = all_profit/profitable
+            self._stat['average_loss, %'] = all_losses/(total - profitable)
         self.__round_values(self._stat, presicion)
 
     def to_csv(self, filename: str, sep=',', summary=True) -> None:
