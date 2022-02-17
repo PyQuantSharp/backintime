@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from ..oscillators import Oscillator
+from ..oscillators.oscillator_builder import OscillatorBuilder
 from ..candles_providers import CandlesProvider
 from ..market_data_storage import MarketDataStorage
 
@@ -10,13 +10,14 @@ class MarketDataAnalyzer:
     def __init__(
             self,
             market_data: CandlesProvider,
-            oscillators: Iterable[Oscillator]
+            oscillators: Iterable[OscillatorBuilder]
             ):
 
         if not len(oscillators):
             raise ValueError('Oscillators list must not be empty')
 
         self._values = MarketDataStorage(market_data)
+        oscillators = map(lambda x: x.build(), oscillators)
         # Маппим осцилляторы к их имени для random access
         self._oscillators = {
             oscillator.get_name() : oscillator
