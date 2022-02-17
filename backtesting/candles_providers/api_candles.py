@@ -1,0 +1,4 @@
+
+
+class ApiCandles(CandlesProvider):
+    pass
