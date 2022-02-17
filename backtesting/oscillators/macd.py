@@ -1,4 +1,5 @@
 from .oscillator import Oscillator
+from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -23,7 +24,7 @@ class MacdResults:
         return self.hist[-1] <= 0 and self.hist[-2] > 0
 
 
-class MACD(Oscillator):
+class MACD_(Oscillator):
 
     def __init__(
             self,
@@ -75,3 +76,24 @@ class MACD(Oscillator):
         macd, signal, hist = talib.MACD(close, self._fastperiod, self._slowperiod, self._signalperiod)
         but with 33* initial gap
         '''
+
+class MACD(OscillatorBuilder):
+    def __init__(
+            self,
+            timeframe: Timeframes,
+            fastperiod: int=12,
+            slowperiod: int=26,
+            signalperiod: int=9
+            ):
+        self.timeframe = timeframe
+        self.fastperiod = fastperiod
+        self.slowperiod = slowperiod
+        self.signalperiod = signalperiod
+
+    def build(self) -> MACD_:
+        return MACD_(
+            self.timeframe,
+            self.fastperiod,
+            self.slowperiod,
+            self.signalperiod
+        )

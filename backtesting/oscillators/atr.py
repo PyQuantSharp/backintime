@@ -1,4 +1,5 @@
 from .oscillator import Oscillator
+from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -6,7 +7,7 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class ATR(Oscillator):
+class ATR_(Oscillator):
 
     def __init__(
             self,
@@ -61,3 +62,18 @@ class ATR(Oscillator):
 
         atr = talib.ATR(high, low, close, self._period)[-1]
         return atr
+
+
+class ATR(OscillatorBuilder):
+    def __init__(
+            self,
+            timeframe: Timeframes,
+            period: int,
+            name: str=None
+            ):
+        self.timeframe = timeframe
+        self.period = period
+        self.name = name
+
+    def build(self) -> ATR_:
+        return ATR_(self.timeframe, self.period, self.name)

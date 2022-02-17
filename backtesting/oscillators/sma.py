@@ -1,4 +1,5 @@
 from .oscillator import Oscillator
+from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -6,7 +7,7 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class SMA(Oscillator):
+class SMA_(Oscillator):
 
     def __init__(
             self,
@@ -42,3 +43,20 @@ class SMA(Oscillator):
 
         sma = talib.SMA(values, self._period)[-1]
         return sma
+
+
+class SMA(OscillatorBuilder):
+    def __init__(
+            self,
+            timeframe: Timeframes,
+            property: CandleProperties,
+            period: int,
+            name: str=None
+            ):
+        self.timeframe = timeframe
+        self.property = property
+        self.period = period
+        self.name = name
+
+    def build(self) -> SMA_:
+        return SMA_(self.timeframe, self.property, self.period, self.name)

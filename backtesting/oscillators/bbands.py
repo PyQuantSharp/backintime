@@ -1,6 +1,7 @@
 from collections import namedtuple
 
 from .oscillator import Oscillator
+from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -8,7 +9,7 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class BBANDS(Oscillator):
+class BBANDS_(Oscillator):
 
     Result = namedtuple('Result', 'upperband middleband lowerband')
 
@@ -57,3 +58,28 @@ class BBANDS(Oscillator):
         )
 
         return BBANDS.Result(upperband[-1], middleband[-1], lowerband[-1])
+
+
+class BBANDS(OscillatorBuilder):
+    def __init__(
+            self,
+            timeframe: Timeframes,
+            period: int,
+            property: CandleProperties=CandleProperties.CLOSE,
+            deviation_quotient: int=2,
+            name: str=None
+            ):
+        self.timeframe = timeframe
+        self.period = period
+        self.property = property
+        self.deviation_quotient = deviation_quotient
+        self.name = name
+
+    def build(self) -> BBANDS_:
+        return BBANDS_(
+            self.timeframe,
+            self.period,
+            self.property,
+            self.deviation_quotient,
+            self.name
+        )
