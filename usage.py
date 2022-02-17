@@ -1,31 +1,23 @@
 from backtesting import (
     Backtester,
     TradingStrategy,
-    MarketDataAnalyzer,
     Timeframes,
     CandleProperties
 )
-
 from backtesting.candles_providers.timeframe_dump import TimeframeDump
 from backtesting.candles_providers.timeframe_dump import TimeframeDumpScheme
 from backtesting.oscillators.atr import ATR
 from backtesting.oscillators.rsi import RSI
 
 
-class AtrRsiAnalyzer(MarketDataAnalyzer):
-    def __init__(self, market_data):
-        oscillators = (
-            ATR(Timeframes.H4, 14, 'ATR_H4'),
-            RSI(Timeframes.H4, 14, 'RSI_H4'),
-            RSI(Timeframes.D1, 14, 'RSI_D1')
-        )
-        super().__init__(market_data, oscillators)
-
-
 class MyStrategy(TradingStrategy):
 
-    analyzer_t = AtrRsiAnalyzer
     using_candles = (Timeframes.H4, Timeframes.D1)
+    oscillators = (
+        ATR(Timeframes.H4, 14, 'ATR_H4'),
+        RSI(Timeframes.H4, 14, 'RSI_H4'),
+        RSI(Timeframes.D1, 14, 'RSI_D1')
+    )
 
     def __call__(self):
 

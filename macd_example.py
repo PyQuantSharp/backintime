@@ -1,25 +1,17 @@
 from backtesting import (
     Backtester,
     TradingStrategy,
-    MarketDataAnalyzer,
     Timeframes,
     CandleProperties
 )
-
 from backtesting.candles_providers.timeframe_dump import TimeframeDump
 from backtesting.candles_providers.timeframe_dump import TimeframeDumpScheme
 from backtesting.oscillators.macd import MACD
 
 
-class MacdAnalyzer(MarketDataAnalyzer):
-    def __init__(self, market_data):
-        oscillators = ( MACD(Timeframes.H4), )
-        super().__init__(market_data, oscillators)
-
-
 class MacdStrategy(TradingStrategy):
 
-    analyzer_t = MacdAnalyzer
+    oscillators = ( MACD(Timeframes.H4), )
 
     def __call__(self):
         macd = self._oscillators.get('MACD_H4')
