@@ -64,10 +64,8 @@ print(backtester.results())
 ```
 
 ## Install
-**Note** you need to install TA-lib first (see [dependencies] for details).  
-After getting TA-lib installed on your machine, type:
 ```sh
-git clone <https://github.com/akim-mukhtarov/backtesting>
+git clone https://github.com/akim-mukhtarov/backtesting
 pip install backtesting/requirements.txt
 ```
 
