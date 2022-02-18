@@ -8,8 +8,8 @@ Expected in 1.x.x releases.
 - Market/Limit orders management
 - Use CSV or Binance API as a data source
 - The same data can be represented in up to 16 timeframes  
-    (compression for shorter candles to imitate longer ones)
-- Quick trading history statistics (win rate, avg. profit, etc.)
+    (few short candles is compressed to longer one)
+- Brief trading history statistics (win rate, avg. profit, etc.)
 - Export trades to csv
 
 ## This is how it looks like - MACD strategy
