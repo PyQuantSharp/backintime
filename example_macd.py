@@ -1,20 +1,19 @@
 from backtesting import (
     Backtester,
+    BinanceApiCandles,
     TradingStrategy,
     Timeframes,
     CandleProperties
 )
-from backtesting.candles_providers.timeframe_dump import TimeframeDump
-from backtesting.candles_providers.timeframe_dump import TimeframeDumpScheme
-from backtesting.oscillators.macd import MACD
+from backtesting.oscillators.macd import macd
 
 
 class MacdStrategy(TradingStrategy):
 
-    oscillators = ( MACD(Timeframes.H4), )
+    using_oscillators = ( macd(Timeframes.H4), )
 
     def __call__(self):
-        macd = self._oscillators.get('MACD_H4')
+        macd = self.oscillators.get('MACD_H4')
 
         if not self.position and macd.crossover_up():
             self._buy()
@@ -23,12 +22,7 @@ class MacdStrategy(TradingStrategy):
             self._sell()
 
 
-columns = TimeframeDumpScheme(
-    open_time=0, close_time=6,
-    open=1, high=3, low=4,
-    close=2, volume=5
-)
-feed = TimeframeDump('h4.csv', Timeframes.H4, columns)
+feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
 backtester = Backtester(MacdStrategy, feed)
 backtester.run_test('2020-01-01', 10000)
 print(backtester.results())
