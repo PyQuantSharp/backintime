@@ -10,7 +10,7 @@ class MarketDataAnalyzer:
     def __init__(
             self,
             market_data: CandlesProvider,
-            oscillators: Iterable[Callable[MarketDataStorage, Oscillator]]
+            oscillators: Iterable[Callable[[MarketDataStorage], Oscillator]]
     ):
         self._values = MarketDataStorage(market_data)
         # init oscillators
