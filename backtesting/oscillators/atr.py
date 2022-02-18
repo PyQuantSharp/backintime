@@ -16,12 +16,9 @@ class ATR(Oscillator):
     ):
         if not name:
             name = f'ATR_{timeframe.name}_{period}'
-
-        self._timeframe = timeframe
         self._period = period
-        #
         self._reserved_size = 300
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         # TODO: consider change .reserve to accept list of properties
@@ -63,4 +60,4 @@ class ATR(Oscillator):
 
 
 def atr(timeframe: Timeframes, period: int, name: str=None) -> Callable:
-    return lambda: ATR(timeframe, period, name)
+    return lambda market_data: ATR(market_data, timeframe, period, name)

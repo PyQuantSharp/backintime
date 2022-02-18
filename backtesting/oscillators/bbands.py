@@ -21,20 +21,18 @@ class BBANDS(Oscillator):
             property: CandleProperties=CandleProperties.CLOSE,
             deviation_quotient: int=2,
             name: str=None
-            ):
+    ):
         if not name:
             if property != CandleProperties.CLOSE:
                 name = f'BBANDS_{timeframe.name}_{period}_{property.name}'
             else:
                 name = f'BBANDS_{timeframe.name}_{period}'
 
-        self._timeframe = timeframe
         self._property = property
         self._period = period
         self._devq = deviation_quotient
-        #
         self._reserved_size = 300
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         self._market_data.reserve(
@@ -67,4 +65,7 @@ def bbands(
         deviation_quotient:int = 2,
         name: str=None) -> Callable:
     #
-    return lambda: BBANDS(timeframe, property, deviation_quotient, name)
+    return lambda market_data: BBANDS(
+        market_data, timeframe,
+        property, deviation_quotient, name
+    )

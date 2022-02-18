@@ -11,19 +11,19 @@ import talib
 class SMA(Oscillator):
 
     def __init__(
-            self, timeframe: Timeframes,
+            self,
+            market_data: MarketDataStorage,
+            timeframe: Timeframes,
             property: CandleProperties,
-            period: int, name: str=None
+            period: int,
+            name: str=None
     ):
         if not name:
             name = f'SMA_{timeframe.name}_{period}'
-
-        self._timeframe = timeframe
         self._property_hint = property
         self._period = period
-        #
         self._reserved_size = period
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         self._market_data.reserve(
@@ -38,7 +38,6 @@ class SMA(Oscillator):
             self._property_hint,
             self._reserved_size
         )
-
         sma = talib.SMA(values, self._period)[-1]
         return sma
 
@@ -47,4 +46,8 @@ def sma(timeframe: Timeframes,
         property: CandleProperties,
         period: int,
         name: str=None) -> Callable:
-    return lambda: SMA(timeframe, property, period, name)
+    #
+    return lambda market_data: SMA(
+        market_data, timeframe,
+        property, period, name
+    )

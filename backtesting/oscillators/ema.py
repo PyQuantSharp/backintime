@@ -11,19 +11,18 @@ import talib
 class EMA(Oscillator):
 
     def __init__(
-            self, timeframe: Timeframes,
+            self,
+            market_data: MarketDataStorage,
+            timeframe: Timeframes,
             property: CandleProperties,
             period: int, name: str=None
     ):
         if not name:
             name = f'EMA_{timeframe.name}_{period}'
-
-        self._timeframe = timeframe
         self._property_hint = property
         self._period = period
-        #
         self._reserved_size = 300
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         self._market_data.reserve(
@@ -47,4 +46,8 @@ def ema(timeframe: Timeframes,
         property: CandleProperties,
         period: int,
         name: str=None) -> Callable:
-    return lambda: EMA(timeframe, property, period, name)
+    #
+    return lambda market_data: EMA(
+        market_data, timeframe,
+        property, period, name
+    )

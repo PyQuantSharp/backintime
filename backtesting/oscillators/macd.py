@@ -29,20 +29,18 @@ class MACD(Oscillator):
 
     def __init__(
             self,
+            market_data: MarketDataStorage,
             timeframe: Timeframes,
             fastperiod: int=12,
             slowperiod: int=26,
             signalperiod: int=9
     ):
         name = f'MACD_{timeframe.name}'
-        self._timeframe = timeframe
         self._fastperiod = fastperiod
         self._slowperiod = slowperiod
         self._signalperiod = signalperiod
-        # link explanation ?
-        # self._reserved_size = slowperiod + signalperiod - 1
         self._reserved_size = 300
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         self._market_data.reserve(
@@ -78,10 +76,13 @@ class MACD(Oscillator):
         but with 33* initial gap
         '''
 
-
 def macd(
         timeframe: Timeframes,
         fastperiod: int=12,
         slowperiod: int=26,
         signalperiod: int=9) -> Callable:
-    return lambda: MACD(timeframe, fastperiod, slowperiod, signalperiod)
+    #
+    return lambda market_data: MACD(
+        market_data, timeframe,
+        fastperiod, slowperiod, signalperiod
+    )

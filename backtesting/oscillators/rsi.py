@@ -11,16 +11,17 @@ import talib
 class RSI(Oscillator):
 
     def __init__(
-        self, timeframe: Timeframes,
-        period: int, name: str=None
+            self,
+            market_data: MarketDataStorage,
+            timeframe: Timeframes,
+            period: int,
+            name: str=None
     ):
         if not name:
             name = f'RSI_{timeframe.name}_{period}'
-
-        self._timeframe = timeframe
         self._period = period
         self._reserved_size = 300
-        super().__init__(name)
+        super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
         self._market_data.reserve(
@@ -35,10 +36,9 @@ class RSI(Oscillator):
             CandleProperties.CLOSE,
             self._reserved_size
         )
-
         rsi = talib.RSI(close, self._period)[-1]
         return rsi
 
 
 def rsi(timeframe: Timeframes, period: int, name: str=None) -> Callable:
-    return lambda: RSI(timeframe, period, name)
+    return lambda market_data: RSI(market_data, timeframe, period, name)
