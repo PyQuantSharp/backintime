@@ -23,11 +23,11 @@ to have your own strategy
 '''
 class MacdStrategy(TradingStrategy):
     # declare required oscillators here for later use
-    oscillators = ( macd(Timeframes.H4), )
+    using_oscillators = ( macd(Timeframes.H4), )
 
     def __call__(self):
         # runs each time a new candle closes
-        macd = self._oscillators.get('MACD_H4')
+        macd = self.oscillators.get('MACD_H4')
         if not self.position and macd.crossover_up():
             self._buy()     # MarketBuy
         elif self.position and macd.crossover_down():
