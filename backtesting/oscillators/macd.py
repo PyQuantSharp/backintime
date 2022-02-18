@@ -1,5 +1,6 @@
+from typing import Callable
+
 from .oscillator import Oscillator
-from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -24,7 +25,7 @@ class MacdResults:
         return self.hist[-1] <= 0 and self.hist[-2] > 0
 
 
-class MACD_(Oscillator):
+class MACD(Oscillator):
 
     def __init__(
             self,
@@ -32,7 +33,7 @@ class MACD_(Oscillator):
             fastperiod: int=12,
             slowperiod: int=26,
             signalperiod: int=9
-            ):
+    ):
         name = f'MACD_{timeframe.name}'
         self._timeframe = timeframe
         self._fastperiod = fastperiod
@@ -77,23 +78,10 @@ class MACD_(Oscillator):
         but with 33* initial gap
         '''
 
-class MACD(OscillatorBuilder):
-    def __init__(
-            self,
-            timeframe: Timeframes,
-            fastperiod: int=12,
-            slowperiod: int=26,
-            signalperiod: int=9
-            ):
-        self.timeframe = timeframe
-        self.fastperiod = fastperiod
-        self.slowperiod = slowperiod
-        self.signalperiod = signalperiod
 
-    def build(self) -> MACD_:
-        return MACD_(
-            self.timeframe,
-            self.fastperiod,
-            self.slowperiod,
-            self.signalperiod
-        )
+def macd(
+        timeframe: Timeframes,
+        fastperiod: int=12,
+        slowperiod: int=26,
+        signalperiod: int=9) -> Callable:
+    return lambda: MACD(timeframe, fastperiod, slowperiod, signalperiod)

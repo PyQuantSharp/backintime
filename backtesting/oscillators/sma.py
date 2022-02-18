@@ -1,5 +1,6 @@
+from typing import Callable
+
 from .oscillator import Oscillator
-from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -7,16 +8,13 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class SMA_(Oscillator):
+class SMA(Oscillator):
 
     def __init__(
-            self,
-            timeframe: Timeframes,
+            self, timeframe: Timeframes,
             property: CandleProperties,
-            period: int,
-            name: str=None
-            ):
-
+            period: int, name: str=None
+    ):
         if not name:
             name = f'SMA_{timeframe.name}_{period}'
 
@@ -45,18 +43,8 @@ class SMA_(Oscillator):
         return sma
 
 
-class SMA(OscillatorBuilder):
-    def __init__(
-            self,
-            timeframe: Timeframes,
-            property: CandleProperties,
-            period: int,
-            name: str=None
-            ):
-        self.timeframe = timeframe
-        self.property = property
-        self.period = period
-        self.name = name
-
-    def build(self) -> SMA_:
-        return SMA_(self.timeframe, self.property, self.period, self.name)
+def sma(timeframe: Timeframes,
+        property: CandleProperties,
+        period: int,
+        name: str=None) -> Callable:
+    return lambda: SMA(timeframe, property, period, name)

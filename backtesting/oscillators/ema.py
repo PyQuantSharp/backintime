@@ -1,5 +1,6 @@
+from typing import Callable
+
 from .oscillator import Oscillator
-from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -7,16 +8,13 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class EMA_(Oscillator):
+class EMA(Oscillator):
 
     def __init__(
-            self,
-            timeframe: Timeframes,
+            self, timeframe: Timeframes,
             property: CandleProperties,
-            period: int,
-            name: str=None
-            ):
-
+            period: int, name: str=None
+    ):
         if not name:
             name = f'EMA_{timeframe.name}_{period}'
 
@@ -45,18 +43,8 @@ class EMA_(Oscillator):
         return ema
 
 
-class EMA(OscillatorBuilder):
-    def __init__(
-            self,
-            timeframe: Timeframes,
-            property: CandleProperties,
-            period: int,
-            name: str=None
-            ):
-        self.timeframe = timeframe
-        self.property = property
-        self.period = period
-        self.name = name
-
-    def build(self) -> EMA_:
-        return EMA_(self.timeframe, self.property, self.period, self.name)
+def ema(timeframe: Timeframes,
+        property: CandleProperties,
+        period: int,
+        name: str=None) -> Callable:
+    return lambda: EMA(timeframe, property, period, name)

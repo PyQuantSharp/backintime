@@ -1,5 +1,6 @@
+from typing import Callable
+
 from .oscillator import Oscillator
-from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -7,13 +8,12 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class RSI_(Oscillator):
+class RSI(Oscillator):
 
     def __init__(
-            self, timeframe: Timeframes,
-            period: int, name: str=None
-            ):
-
+        self, timeframe: Timeframes,
+        period: int, name: str=None
+    ):
         if not name:
             name = f'RSI_{timeframe.name}_{period}'
 
@@ -40,14 +40,5 @@ class RSI_(Oscillator):
         return rsi
 
 
-class RSI(OscillatorBuilder):
-    def __init__(
-            self, timeframe: Timeframes,
-            period: int, name: str=None
-            ):
-        self.timeframe = timeframe
-        self.period = period
-        self.name = name
-
-    def build(self) -> RSI_:
-        return RSI_(self.timeframe, self.period, self.name)
+def rsi(timeframe: Timeframes, period: int, name: str=None) -> Callable:
+    return lambda: RSI(timeframe, period, name)

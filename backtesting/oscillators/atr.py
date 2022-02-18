@@ -1,5 +1,6 @@
+from typing import Callable
+
 from .oscillator import Oscillator
-from .oscillator_builder import OscillatorBuilder
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -7,15 +8,12 @@ from ..candle_properties import CandleProperties
 import talib
 
 
-class ATR_(Oscillator):
+class ATR(Oscillator):
 
     def __init__(
-            self,
-            timeframe: Timeframes,
-            period: int,
-            name: str=None
-            ):
-
+        self, market_data: MarketDataStorage,
+        timeframe: Timeframes, period: int, name: str=None
+    ):
         if not name:
             name = f'ATR_{timeframe.name}_{period}'
 
@@ -64,16 +62,5 @@ class ATR_(Oscillator):
         return atr
 
 
-class ATR(OscillatorBuilder):
-    def __init__(
-            self,
-            timeframe: Timeframes,
-            period: int,
-            name: str=None
-            ):
-        self.timeframe = timeframe
-        self.period = period
-        self.name = name
-
-    def build(self) -> ATR_:
-        return ATR_(self.timeframe, self.period, self.name)
+def atr(timeframe: Timeframes, period: int, name: str=None) -> Callable:
+    return lambda: ATR(timeframe, period, name)
