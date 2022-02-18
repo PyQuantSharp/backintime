@@ -1,6 +1,6 @@
 # backtesting
 ✨ A framework for trading strategies backtesting with Python ✨  
-**note**: trailing stop, stop limit and OCO
+**Note**: trailing stop, stop limit and OCO
 orders are not supported as of the current version.  
 Expected in 1.x.x releases.   
 
@@ -39,7 +39,7 @@ backtesting is done as follows (with binance API data):
 from backtesting import BinanceApiCandles
 
 feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
-backtester = Backtester(MyStrategy, feed)
+backtester = Backtester(MacdStrategy, feed)
 # choose start date and initial funds for the test
 backtester.run_test('2020-01-01', 10000)
 # the result is available as a printable instance
@@ -58,20 +58,22 @@ columns = TimeframeDumpScheme(
     close=2, volume=5)
 
 feed = TimeframeDump('h4.csv', Timeframes.H4, columns)
-backtester = Backtester(MyStrategy, feed)
+backtester = Backtester(MacdStrategy, feed)
 backtester.run_test('2020-01-01', 10000)
 print(backtester.results())
 ```
 
 ## Install
-To use this framework, you need to install [TA-lib] first. This lib is used for technical analysis functions. Installation guide could be found [here]. Python wrapper (project of [SomeHren]) is already included in framework and don't need to be installed separately. After getting TA-lib installed on your machine, type:
+**Note** you need to install TA-lib first (see [dependencies] for details).  
+After getting TA-lib installed on your machine, type:
 ```sh
-cd <desired-folder>
-git clone <addr>
+git clone <https://github.com/akim-mukhtarov/backtesting>
+pip install backtesting/requirements.txt
 ```
 
-## Usage
-here go explanations, comments, all that
+## Dependencies
+To use this framework, you need to have the TA-Lib already installed. This lib is used for technical analysis functions.
+You can find the installation guide [here]. Python wrapper ([project] of [mrjbq7]) is already included in framework and don't need to be installed separately.
 
 
 ## License
@@ -82,5 +84,9 @@ MIT
 
  Akim Mukhtarov [@akim_int80h]
 
+[dependencies]: <https://github.com/akim-mukhtarov/backtesting#dependencies>
+[here]: <https://github.com/mrjbq7/ta-lib#dependencies>
+[project]: <https://github.com/mrjbq7/ta-lib>
+[mrjbq7]: <https://github.com/mrjbq7>
 [@akim_int80h]: <https://t.me/akim_int80h>
 [macd strategy explained]: <https://www.investopedia.com/terms/m/macd.asp#:~:text=Moving%20average%20convergence%20divergence%20(MACD)%20is%20a%20trend%2Dfollowing,averages%20of%20a%20security's%20price.&text=Traders%20may%20buy%20the%20security,crosses%20below%20the%20signal%20line.>
