@@ -1,5 +1,5 @@
 # backtesting
-✨ A framework for trading strategies backtesting with Python ✨
+✨ A framework for trading strategies backtesting with Python ✨  
 **note**: as of current version trailing stop, stop limit and OCO
 orders are not supported. Expected in 1.x.x releases.   
 
