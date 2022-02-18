@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Tuple
+from typing import Iterable, Callable
 
 from .oscillators import Oscillator
-from .oscillators.oscillator_builder import OscillatorBuilder
 from .timeframes import Timeframes
 from .broker import Broker
 from .timeframes_candle import TimeframesCandle
@@ -13,33 +12,33 @@ from .broker.orders import MarketBuy, MarketSell, LimitBuy, LimitSell
 
 class TradingStrategy(ABC):
 
-    using_candles: Tuple[Timeframes] = None
-    oscillators: Tuple[OscillatorBuilder] = None
+    using_candles: Iterable[Timeframes] = None
+    using_oscillators: Iterable[Callable[..., Oscillator]] = None
     analyzer_t = MarketDataAnalyzer
 
     def __init__(self, market_data: CandlesProvider, broker: Broker):
         self._market_data = market_data
         self._broker = broker
 
-        if self.oscillators:
+        if self.using_oscillators:
             self._oscillators = self.analyzer_t(
                 market_data, self.oscillators)
         else:
             self._oscillators = None
 
         if self.using_candles:
-            self._timeframes_candle = TimeframesCandle(
+            self._candles = TimeframesCandle(
                 market_data, self.using_candles)
         else:
-            self._timeframes_candle = None
+            self._candles = None
 
     def next(self) -> None:
         self._market_data.next()
 
         if self._broker.has_orders():
             self._broker.update()
-        if self._timeframes_candle:
-            self._timeframes_candle.update()
+        if self._candles:
+            self._candles.update()
         if self._oscillators:
             self._oscillators.update()
 
@@ -54,6 +53,14 @@ class TradingStrategy(ABC):
         order = MarketSell(quantity) if not price \
             else LimitSell(price, quantity)
         self._broker.submit(order)
+
+    @property
+    def oscillators(self):
+        return self._oscillators
+
+    @property
+    def candles(self):
+        return self._candles
 
     @property
     def position(self):
