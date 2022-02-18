@@ -10,13 +10,26 @@ class BinanceApiCandles(ApiCandles):
     _url = 'https://api.binance.com/api/v3/klines'
     # <Timeframes> : <str - binance str repr>
     _binance_intervals = {
+        Timeframes.M1: '1m',
+        Timeframes.M3: '3m',
+        Timeframes.M5: '5m',
+        Timeframes.M15: '15m',
+        Timeframes.M30: '30m',
         Timeframes.H1: '1h',
         Timeframes.H2: '2h',
         Timeframes.H4: '4h',
-        Timeframes.D1: '1d'
+        Timeframes.D1: '1d',
+        Timeframes.W1: '1w'
     }
 
     def __init__(self, ticker: str, timeframe_tag: Timeframes):
+        try:
+            self._interval = self._binance_intervals[timeframe_tag]
+        except KeyError:
+            allowed = list(self._binance_intervals.keys())
+            raise ValueError(
+                'Binance API supports the following timeframes: {allowed}')
+                
         self._ticker = ticker
         self._gen = None
         super().__init__(timeframe_tag)
@@ -28,9 +41,10 @@ class BinanceApiCandles(ApiCandles):
 
         MAX_PER_REQUEST = 1000
         max_time_step = MAX_PER_REQUEST*self.candle_duration()*1000
+
         params = {
             'symbol': self._ticker,
-            'interval': self._binance_intervals.get(self._timeframe_tag),
+            'interval': self._interval,
             'startTime': None,
             'endTime': end_time,
             'limit': MAX_PER_REQUEST
