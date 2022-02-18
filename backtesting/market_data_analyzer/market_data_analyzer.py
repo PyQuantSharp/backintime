@@ -1,4 +1,4 @@
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Any
 
 from ..candles_providers import CandlesProvider
 from ..market_data_storage import MarketDataStorage
@@ -24,7 +24,7 @@ class MarketDataAnalyzer:
     def update(self) -> None:
         self._values.update()
 
-    def get(self, oscillator_name: str) -> float:
+    def get(self, oscillator_name: str) -> Any:
         # calculate oscillator value on demand
         oscillator = self._oscillators.get(oscillator_name)
 
