@@ -1,18 +1,19 @@
 # backtesting
 ✨ A framework for trading strategies backtesting with Python ✨  
-**note**: as of current version trailing stop, stop limit and OCO
-orders are not supported. Expected in 1.x.x releases.   
+**note**: trailing stop, stop limit and OCO
+orders are not supported as of the current version.  
+Expected in 1.x.x releases.   
 
 ## Features
 - Market/Limit orders management
 - Use CSV or Binance API as a data source
-- The same data can be represented in up to 16 timeframes
+- The same data can be represented in up to 16 timeframes  
     (compression for shorter candles to imitate longer ones)
 - Quick trading history statistics (win rate, avg. profit, etc.)
 - Export trades to csv
 
 ## This is how it looks like - MACD strategy
-[macd strategy explained]
+see [macd strategy explained]
 ```py
 from backtesting import TradingStrategy, Timeframes
 from backtesting.oscillators.macd import macd
@@ -32,8 +33,7 @@ class MacdStrategy(TradingStrategy):
         elif self.position and macd.crossover_down():
             self._sell()    # MarketSell
 ```
-backtesting is done as follows:
-(with binance API data)
+backtesting is done as follows (with binance API data):
 ```py
 # add the following import to the ones above
 from backtesting import BinanceApiCandles
@@ -48,7 +48,7 @@ print(res)
 # and also can be saved to a csv file
 res.to_csv('filename.csv', sep=';', summary=True)
 ```
-Alternatively, you can use csv file on your local machine as source
+Alternatively, you can use a csv file on your local machine as source
 ```py
 from backtesting import TimeframeDump, TimeframeDumpScheme
 # specify column indexes in input csv
