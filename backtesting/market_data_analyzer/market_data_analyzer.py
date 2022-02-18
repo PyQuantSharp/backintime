@@ -1,7 +1,8 @@
-from typing import Iterable
+from typing import Iterable, Callable
 
 from ..candles_providers import CandlesProvider
 from ..market_data_storage import MarketDataStorage
+from ..oscillators import Oscillator
 
 
 class MarketDataAnalyzer:
@@ -9,7 +10,7 @@ class MarketDataAnalyzer:
     def __init__(
             self,
             market_data: CandlesProvider,
-            oscillators: Iterable[Callable]
+            oscillators: Iterable[Callable[MarketDataStorage, Oscillator]]
     ):
         self._values = MarketDataStorage(market_data)
         # init oscillators
