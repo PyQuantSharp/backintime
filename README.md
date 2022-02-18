@@ -1,24 +1,28 @@
 # backtesting
-✨ A framework for backtesting trading strategies with Python ✨
+✨ A framework for trading strategies backtesting with Python ✨
+**note**: as of current version trailing stop, stop limit and OCO
+orders are not supported. Expected in 1.x.x releases.   
 
 ## Features
 - Market/Limit orders management
-- Support for 16 timeframes. Smaller can be used to imitate bigger.
-- Quick trades statistics (winrate, avg profit, etc.)
-- Export trades history to csv
+- Use CSV or Binance API as a data source
+- The same data can be represented in up to 16 timeframes
+    (compression for shorter candles to imitate longer ones)
+- Quick trading history statistics (win rate, avg. profit, etc.)
+- Export trades to csv
 
 ## This is how it looks like - MACD strategy
-[macd strategy desc link]
+[macd strategy explained]
 ```py
 from backtesting import TradingStrategy, Timeframes
-from backtesting.oscillators.macd import MACD
+from backtesting.oscillators.macd import macd
 '''
 Extend TradingStrategy class and implement __call__ method
 to have your own strategy
 '''
 class MacdStrategy(TradingStrategy):
     # declare required oscillators here for later use
-    oscillators = ( MACD(Timeframes.H4), )
+    oscillators = ( macd(Timeframes.H4), )
 
     def __call__(self):
         # runs each time a new candle closes
@@ -59,21 +63,12 @@ backtester.run_test('2020-01-01', 10000)
 print(backtester.results())
 ```
 
-## Disclaimer
-The project is currenctly in beta and misses few important features for <some-epitet>
-usage. As of version 0.7.0 **NOT** yet developed:
-- Trailing stop, Stop Loss and OCO mechanisms. Only Limit and Market orders supported
-- Most oscillators. Ready-to-use oscillators are listed on [link]
-- ✨Magic ✨  
-
 ## Install
 To use this framework, you need to install [TA-lib] first. This lib is used for technical analysis functions. Installation guide could be found [here]. Python wrapper (project of [SomeHren]) is already included in framework and don't need to be installed separately. After getting TA-lib installed on your machine, type:
 ```sh
 cd <desired-folder>
 git clone <addr>
 ```
-
-
 
 ## Usage
 here go explanations, comments, all that
@@ -87,6 +82,5 @@ MIT
 
  Akim Mukhtarov [@akim_int80h]
 
-**Free Software, Hell Yeah!**
-
 [@akim_int80h]: <https://t.me/akim_int80h>
+[macd strategy explained]: <https://www.investopedia.com/terms/m/macd.asp#:~:text=Moving%20average%20convergence%20divergence%20(MACD)%20is%20a%20trend%2Dfollowing,averages%20of%20a%20security's%20price.&text=Traders%20may%20buy%20the%20security,crosses%20below%20the%20signal%20line.>
