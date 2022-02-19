@@ -34,7 +34,7 @@ class TradingStrategy(ABC):
 
         if self.using_oscillators:
             self._oscillators = self.analyzer_t(
-                market_data, self.oscillators)
+                market_data, self.using_oscillators)
         else:
             self._oscillators = None
 
