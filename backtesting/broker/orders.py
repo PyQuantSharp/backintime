@@ -26,12 +26,11 @@ class Order:
 
 
 class MarketOrder(Order):
-    def __init__(self, price=None, quantity=None):
-        super().__init__(OrderTypes.Market, price, quantity)
-
     def update(self, candle):
         time_1 = candle.open_time
 
+        print(f'Candle: {candle}')
+        
         if not self.quantity:
             self.quantity = self.notional / candle.open
         if not self.notional:
@@ -68,6 +67,10 @@ class BuyOrder(Order):
 
 
 class MarketBuy(MarketOrder, BuyOrder):
+
+    def __init__(self, quantity=None):
+        super().__init__(OrderTypes.Market, None, quantity)
+
     def _execute(self, price, time_1, time_2):
         if not self.pledge:
             price = self.notional
@@ -127,6 +130,9 @@ class SellOrder(Order):
 
 
 class MarketSell(MarketOrder, SellOrder):
+    def __init__(self, quantity=None):
+        super().__init__(OrderTypes.Market, None, quantity)
+
     def _execute(self, price, time_1, time_2):
         if not self.price:
             self.price = self
