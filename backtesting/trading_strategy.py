@@ -11,7 +11,17 @@ from .broker.orders import MarketBuy, MarketSell, LimitBuy, LimitSell
 
 
 class TradingStrategy(ABC):
+    """
+    Override "using_candles" to define what timeframes will be used
+        in strategy and make them available in __call__ method
+        via self.candles.get(timeframe)
 
+    Override "using_oscillators" to define what oscillators will be
+        used in strategy and make then available in __call__ method
+        via self.oscillators.get(oscillator_name)
+
+    Override analyzer_t to provide custom analyzer class
+    """
     using_candles: Iterable[Timeframes] = None
     using_oscillators: Iterable[Callable[..., Oscillator]] = None
     analyzer_t = MarketDataAnalyzer

@@ -2,9 +2,7 @@ from .orders import BuyOrder, SellOrder
 
 
 class Position:
-    '''
-    Long Position closed when --> продавать нечего :-)
-    '''
+    """ Long Position closed when --> продавать нечего :-) """
     def __init__(self, account):
         self.profit = None
         self.profit_ratio = None
@@ -23,7 +21,7 @@ class Position:
             self._volume -= order.quantity
 
         print(f'volume: {self._volume}')
-            
+
         if not self._volume:
             self._is_closed = True
             self._calc_profit()

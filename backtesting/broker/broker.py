@@ -8,9 +8,7 @@ from ..candles_providers import CandlesProvider
 
 
 class Broker:
-    '''
-    Broker deals with orders and fees
-    '''
+    """ Broker deals with orders and fees """
     def __init__(self, market_data: CandlesProvider, start_money: float, fees: Fees):
         self._market_data = market_data
         self._account = TradeAccount(start_money)

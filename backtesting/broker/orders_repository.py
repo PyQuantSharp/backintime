@@ -3,12 +3,12 @@ from .orders import Order, OrderTypes
 
 
 class OrdersRepository:
-    '''
+    """
     Access to market/limit orders collections
     through one interface
     Use priority queue for limit orders,
     and list/queue for market ones
-    '''
+    """
     def __init__(self):
         # map order to item in priority queue
         self._entry_finder = {}

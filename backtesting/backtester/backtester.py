@@ -12,15 +12,24 @@ import datetime
 
 
 class Backtester:
+    """
+    Backtester is used to test a strategy (instance of :class:`TradingStrategy`)
+    with market data (instance of :class:`CandlesProvider`),
+    and then report results
 
+    Override _fees to change trade fees. By default 0.1%
+        is used both for maker and taker orders
+
+    Override _broker_t to change default broker class
+    """
     _fees = Fees(0.001, 0.001)
     _broker_t = Broker
-    # fees --> broker_t(market_data, money, fees)
+
     def __init__(
             self,
             strategy_class: Type[TradingStrategy],
             market_data: CandlesProvider
-            ):
+    ):
         self._strategy_t = strategy_class
         self._market_data = market_data
         self._broker = None
@@ -29,6 +38,16 @@ class Backtester:
         self.fees = self._fees
 
     def run_test(self, since: str, start_money: float) -> None:
+        """Start backtesting, getting candles from `since` date and up to:
+            a) if self._market_data is instance of TimeframeDump
+                - read until the end of file
+            b) get candles until current date otherwise
+
+        :param since:
+            string in ISO-8601 format (yyyy-mm-dd)
+        :param start_money:
+            initial funds for the test
+        """
         self._broker = self._broker_t(self._market_data, start_money, self._fees)
         since = datetime.datetime.fromisoformat(since)
         self._start_date = since
@@ -52,6 +71,7 @@ class Backtester:
         self._end_date = self._market_data.current_date()
 
     def results(self) -> BacktestingResults:
+        """ Return results of the last run """
         return BacktestingResults(
             self._broker.positions(),
             self._start_date,

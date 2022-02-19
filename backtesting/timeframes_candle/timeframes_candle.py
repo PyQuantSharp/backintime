@@ -17,8 +17,8 @@ class TimeframesCandle:
             using_timeframes: Iterable[Timeframes]
             ):
         '''
-        Доп требование - все тф должны быть <= market_data.timeframe
-        && тф // market_data.timeframe без остатка
+        # TODO:
+        Доп требование - все тф должны быть <= market_data.timeframe !
         '''
         self._timeframes_data = {
             timeframe : TimeframeCandle(timeframe, market_data)

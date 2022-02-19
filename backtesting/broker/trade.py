@@ -5,9 +5,7 @@ import datetime
 
 @dataclass
 class Trade:
-    '''
-    Trade represents executed order
-    '''
+    """ Trade represents executed order """
     time_1: datetime.datetime
     time_2: datetime.datetime
     order: Any  # expecting Order

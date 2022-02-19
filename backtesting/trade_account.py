@@ -4,11 +4,11 @@ from .broker.position import Position
 
 class TradeAccount:
     """
-    `TradeAccount` holds info about account
+    :class:`TradeAccount` holds info about account
     like current balance and trades history
 
     One can add trades to history, lock funds
-    to provide pledge for orders via methods below
+    to provide pledge for orders via the methods below
     """
     def __init__(self, start_money):
         self._base_currency_balance=start_money

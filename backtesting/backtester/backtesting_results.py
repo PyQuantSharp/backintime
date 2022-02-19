@@ -61,6 +61,17 @@ class BacktestingResults:
         self.__round_values(self._stat, presicion)
 
     def to_csv(self, filename: str, sep=',', summary=True) -> None:
+        """Dump the trades history to a csv file
+
+        :param filename:
+            name of the file in current directory
+            (will be created if not exists)
+        :param sep:
+            columns separator
+        :param summary:
+            if True (by default), statistics summary will be included
+                in dump before the list of trades
+        """
         if summary:
             self._write_summary(filename, sep)
         if not self._trades:
