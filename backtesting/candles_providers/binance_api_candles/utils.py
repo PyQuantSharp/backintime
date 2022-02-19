@@ -14,15 +14,17 @@ def to_ms(time_obj: Union[float, datetime, timedelta]) -> int:
     elif isinstance(time_obj, timedelta):
         return int(time_obj.total_seconds()*1000)
 
+
 def _parse_time(millis_timestamp) -> datetime:
     return datetime.utcfromtimestamp(millis_timestamp/1000)
 
+
 def to_candle(candle_arr, candle_buffer: Candle) -> None:
-    candle_buffer.open = candle_arr[1]
-    candle_buffer.high = candle_arr[2]
-    candle_buffer.low = candle_arr[3]
-    candle_buffer.close = candle_arr[4]
-    candle_buffer.volume = candle_arr[5]
+    candle_buffer.open = float(candle_arr[1])
+    candle_buffer.high = float(candle_arr[2])
+    candle_buffer.low = float(candle_arr[3])
+    candle_buffer.close = float(candle_arr[4])
+    candle_buffer.volume = float(candle_arr[5])
     # read timestamp to datetime.datetime
     open_time = _parse_time(candle_arr[0])
     candle_buffer.open_time = open_time
