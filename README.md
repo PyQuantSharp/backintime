@@ -1,6 +1,6 @@
 # backtesting (β)
 ✨ A framework for trading strategies backtesting with Python ✨  
-**Note**: trailing stop, stop limit and OCO
+>> Trailing stop, stop limit and OCO
 orders are not supported as of the current version.  
 Expected in 1.x.x releases.   
 
@@ -28,10 +28,12 @@ class MacdStrategy(TradingStrategy):
     def __call__(self):
         # runs each time a new candle closes
         macd = self.oscillators.get('MACD_H4')
+
         if not self.position and macd.crossover_up():
-            self._buy()     # MarketBuy
+            self._buy()     # buy at market
+
         elif self.position and macd.crossover_down():
-            self._sell()    # MarketSell
+            self._sell()    # sell at market
 ```
 backtesting is done as follows (with binance API data):
 ```py
