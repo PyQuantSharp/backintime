@@ -72,11 +72,11 @@ class TradingStrategy(ABC):
         self._broker.submit(order)
 
     @property
-    def oscillators(self):
+    def oscillators(self) -> MarketDataAnalyzer:
         return self._oscillators
 
     @property
-    def candles(self):
+    def candles(self) -> TimeframesCandle:
         return self._candles
 
     @property
