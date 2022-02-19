@@ -12,6 +12,8 @@ from .broker.orders import MarketBuy, MarketSell, LimitBuy, LimitSell
 
 class TradingStrategy(ABC):
     """
+    Base class for strategies
+
     Override "using_candles" to define what timeframes will be used
         in strategy and make them available in __call__ method
         via self.candles.get(timeframe)
@@ -43,6 +45,11 @@ class TradingStrategy(ABC):
             self._candles = None
 
     def next(self) -> None:
+        """
+        Runs each time a new candle closes
+        and forwards the call to linked instances
+        to keep all data up to date
+        """
         self._market_data.next()
 
         if self._broker.has_orders():
@@ -82,5 +89,5 @@ class TradingStrategy(ABC):
 
     @abstractmethod
     def __call__(self) -> None:
-        # the lands of user code
+        """ The lands of user code """
         pass

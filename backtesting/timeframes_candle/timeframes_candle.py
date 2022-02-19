@@ -26,8 +26,10 @@ class TimeframesCandle:
         }
 
     def get(self, timeframe: Timeframes) -> Candle:
+        """ Return current candle representation in `timeframe` """
         return self._timeframes_data[timeframe].current_candle()
 
     def update(self) -> None:
+        """ Runs each time a new candle closes """
         for timeframe_data in self._timeframes_data.values():
             timeframe_data.update()

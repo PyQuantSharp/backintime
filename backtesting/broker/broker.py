@@ -17,6 +17,12 @@ class Broker:
         self._position = Position(self._account)
 
     def submit(self, order):
+        """
+        Mark order as Submitted which means that it can be closed
+        in future
+        Also lock funds for a pledge, if order notional could be
+        inferred from price and quantity
+        """
         order._fee = self._fees
         order._account = self._account
         order._lock_funds()
@@ -24,6 +30,7 @@ class Broker:
         self._orders.append(order)
 
     def cancel(self, order):
+        """ Cancel orders. Funds will be returned if there was a pledge. """
         order._unlock_funds()
         order._status = OrderStatus.Cancelled
         self._orders.remove(order)
@@ -36,9 +43,11 @@ class Broker:
         return bool(len(self._orders))
 
     def position(self):
+        """ Return current positions """
         return self._position
 
     def positions(self):
+        """ Return all closed positions """
         return self._account.positions()
 
     def _store_trade(self, trade):
@@ -48,6 +57,10 @@ class Broker:
             self._position = Position(self._account)
 
     def update(self):
+        """
+        Runs each time a new candle closes
+        to check if there are orders to close
+        """
         candle = self._market_data.current_candle()
         try:
             for order in self._orders.items():

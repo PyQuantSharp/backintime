@@ -6,7 +6,11 @@ from ..oscillators import Oscillator
 
 
 class MarketDataAnalyzer:
-
+    """
+    Holds oscillators
+    initializes, runs update on it's values storage
+    and provides access to oscillators results
+    """
     def __init__(
             self,
             market_data: CandlesProvider,
@@ -22,10 +26,11 @@ class MarketDataAnalyzer:
         }
 
     def update(self) -> None:
+        """ Runs each time a new candle closes """
         self._values.update()
 
     def get(self, oscillator_name: str) -> Any:
-        # calculate oscillator value on demand
+        """ Calculate oscillator value on demand """
         oscillator = self._oscillators.get(oscillator_name)
 
         if not oscillator:

@@ -18,7 +18,7 @@ class Backtester:
     and then report results
 
     Override _fees to change trade fees. By default 0.1%
-        is used both for maker and taker orders
+        is used for both maker and taker orders
 
     Override _broker_t to change default broker class
     """
