@@ -3,6 +3,8 @@ from ..candle_properties import CandleProperties
 from ..timeframes import Timeframes
 from .timeframe_values import TimeframeValues
 
+import numpy
+
 
 class MarketDataStorage:
     """
