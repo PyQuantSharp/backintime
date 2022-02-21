@@ -1,12 +1,11 @@
 from typing import Callable
-from ta.momentum import RSIIndicator as RSIIndicator
 
 from .oscillator import Oscillator
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import pandas as pd
+import talib
 
 
 class RSI(Oscillator):
@@ -31,14 +30,14 @@ class RSI(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> float:
         close = self._market_data.get(
             self._timeframe,
             CandleProperties.CLOSE,
-            self._reserved_size)
-
-        close = pd.Series(close)
-        return RSIIndicator(close, self._period).rsi()
+            self._reserved_size
+        )
+        rsi = talib.RSI(close, self._period)[-1]
+        return rsi
 
 
 def rsi(timeframe: Timeframes, period: int, name: str=None) -> Callable:

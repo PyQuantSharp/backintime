@@ -1,11 +1,12 @@
 from typing import Callable
+from ta.trend import EMAIndicator as EMAIndicator
 
 from .oscillator import Oscillator
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import talib
+import pandas as pd
 
 
 class EMA(Oscillator):
@@ -21,7 +22,7 @@ class EMA(Oscillator):
             name = f'EMA_{timeframe.name}_{period}'
         self._property_hint = property
         self._period = period
-        self._reserved_size = 300
+        self._reserved_size = 100
         super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
@@ -31,15 +32,14 @@ class EMA(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> float:
+    def __call__(self) -> pd.Series:
         values = self._market_data.get(
             self._timeframe,
             self._property_hint,
-            self._reserved_size
-        )
+            self._reserved_size)
 
-        ema = talib.EMA(values, self._period)[-1]
-        return ema
+        values = pd.Series(values)
+        return EMAIndicator(values, self._period, True).ema_indicator()
 
 
 def ema(timeframe: Timeframes,

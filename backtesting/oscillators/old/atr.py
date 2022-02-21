@@ -1,12 +1,11 @@
 from typing import Callable
-from ta.volatility import AverageTrueRange as AverageTrueRange
 
 from .oscillator import Oscillator
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import pandas as pd
+import talib
 
 
 class ATR(Oscillator):
@@ -26,51 +25,39 @@ class ATR(Oscillator):
         self._market_data.reserve(
             self._timeframe,
             CandleProperties.HIGH,
-            self._reserved_size)
-
+            self._reserved_size
+        )
         self._market_data.reserve(
             self._timeframe,
             CandleProperties.LOW,
-            self._reserved_size)
-
+            self._reserved_size
+        )
         self._market_data.reserve(
             self._timeframe,
             CandleProperties.CLOSE,
-            self._reserved_size)
+            self._reserved_size
+        )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> float:
         high = self._market_data.get(
             self._timeframe,
             CandleProperties.HIGH,
-            self._reserved_size)
-        high = pd.Series(high)
-
+            self._reserved_size
+        )
         low = self._market_data.get(
             self._timeframe,
             CandleProperties.LOW,
-            self._reserved_size)
-        low = pd.Series(low)
-
+            self._reserved_size
+        )
         close = self._market_data.get(
             self._timeframe,
             CandleProperties.CLOSE,
-            self._reserved_size)
-        close = pd.Series(close)
+            self._reserved_size
+        )
 
-        return AverageTrueRange(
-            high,
-            low,
-            close,
-            self._period
-        ).average_true_range()
+        atr = talib.ATR(high, low, close, self._period)[-1]
+        return atr
 
 
-def atr(
-        timeframe: Timeframes,
-        period: int,
-        name: str=None
-) -> Callable:
-    #
-    return lambda market_data: ATR(
-        market_data, timeframe,
-        period, name)
+def atr(timeframe: Timeframes, period: int, name: str=None) -> Callable:
+    return lambda market_data: ATR(market_data, timeframe, period, name)

@@ -5,8 +5,7 @@ from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import ta
-import pandas as pd
+import talib
 
 
 class MacdResults:
@@ -54,21 +53,28 @@ class MACD(Oscillator):
         close = self._market_data.get(
             self._timeframe,
             CandleProperties.CLOSE,
-            self._reserved_size)
+            self._reserved_size
+        )
 
-        close = pd.Series(close)
+        fast_ema = talib.EMA(close, self._fastperiod)
+        slow_ema = talib.EMA(close, self._slowperiod)
 
-        macd = ta.trend.MACD(
-            close,
-            self._slowperiod,
-            self._fastperiod,
-            self._signalperiod)
+        macd = fast_ema - slow_ema
 
-        return MacdResults(
-            macd.macd(),
-            macd.macd_signal(),
-            macd.macd_diff())
+        try:
+            signal = talib.EMA(macd, self._signalperiod)
+            hist = macd - signal
+        except Exception as e:
+            signal = [None]
+            hist = [None]
 
+        return MacdResults(macd, signal, hist)
+        '''
+        The above could be also calculated with:
+
+        macd, signal, hist = talib.MACD(close, self._fastperiod, self._slowperiod, self._signalperiod)
+        but with 33* initial gap
+        '''
 
 def macd(
         timeframe: Timeframes,

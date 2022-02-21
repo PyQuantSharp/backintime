@@ -5,25 +5,23 @@ from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import ta
-import pandas as pd
+import talib
 
 
-class SMA(Oscillator):
+class EMA(Oscillator):
 
     def __init__(
             self,
             market_data: MarketDataStorage,
             timeframe: Timeframes,
             property: CandleProperties,
-            period: int,
-            name: str=None
+            period: int, name: str=None
     ):
         if not name:
-            name = f'SMA_{timeframe.name}_{period}'
+            name = f'EMA_{timeframe.name}_{period}'
         self._property_hint = property
         self._period = period
-        self._reserved_size = period
+        self._reserved_size = 20
         super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
@@ -33,23 +31,23 @@ class SMA(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> float:
         values = self._market_data.get(
             self._timeframe,
             self._property_hint,
-            self._reserved_size)
+            self._reserved_size
+        )
 
-        values = pd.Series(values)
-        sma = ta.trend.SMAIndicator(values, self._period).sma_indicator()
-        return sma
+        ema = talib.EMA(values, self._period)[-1]
+        return ema
 
 
-def sma(timeframe: Timeframes,
+def ema(timeframe: Timeframes,
         property: CandleProperties,
         period: int,
         name: str=None) -> Callable:
     #
-    return lambda market_data: SMA(
+    return lambda market_data: EMA(
         market_data, timeframe,
         property, period, name
     )

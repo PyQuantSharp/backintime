@@ -1,13 +1,12 @@
 from typing import Callable
 from collections import namedtuple
-from ta.volatility import BollingerBands as BollingerBands
 
 from .oscillator import Oscillator
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
-import pandas as pd
+import talib
 
 
 class BBANDS(Oscillator):
@@ -46,30 +45,27 @@ class BBANDS(Oscillator):
         values = self._market_data.get(
             self._timeframe,
             self._property,
-            self._reserved_size)
-
-        values = pd.Series(values)
-        bbands_ = BollingerBands(values, self._period, self._devq)
-
-        return BBANDS.Result(
-            bbands_.bollinger_hband(),     # upperband
-            bbands_.bollinger_mavg(),      # middleband
-            bbands_.bollinger_lband()      # lowerband
+            self._reserved_size
         )
+
+        upperband, middleband, lowerband = talib.BBANDS(
+            values,
+            self._period,
+            nbdevup=self._devq,
+            nbdevdn=self._devq
+        )
+
+        return BBANDS.Result(upperband[-1], middleband[-1], lowerband[-1])
 
 
 def bbands(
         timeframe: Timeframes,
         period: int,
         property: CandleProperties=CandleProperties.CLOSE,
-        deviation_quotient: int=2,
+        deviation_quotient:int = 2,
         name: str=None) -> Callable:
     #
     return lambda market_data: BBANDS(
-        market_data,
-        timeframe,
-        period,
-        property,
-        deviation_quotient,
-        name
+        market_data, timeframe,
+        property, deviation_quotient, name
     )
