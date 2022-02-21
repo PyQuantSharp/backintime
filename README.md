@@ -42,8 +42,8 @@ from backtesting import BinanceApiCandles
 
 feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
 backtester = Backtester(MacdStrategy, feed)
-# choose start date and initial funds for the test
-backtester.run_test('2020-01-01', 10000)
+
+backtester.run_test(since='2020-01-01', start_money=10000)
 # the result is available as a printable instance
 res = backtester.results()
 print(res)
@@ -71,11 +71,6 @@ git clone https://github.com/akim-mukhtarov/backtesting
 pip install backtesting/requirements.txt
 ```
 
-## Dependencies
-To use this framework, you need to have the TA-Lib already installed. This lib is used for technical analysis functions.
-You can find the installation guide [here]. Python wrapper ([project] of [mrjbq7]) is already included in framework and don't need to be installed separately.
-
-
 ## License
 
 MIT
@@ -86,7 +81,5 @@ MIT
 
 [dependencies]: <https://github.com/akim-mukhtarov/backtesting#dependencies>
 [here]: <https://github.com/mrjbq7/ta-lib#dependencies>
-[project]: <https://github.com/mrjbq7/ta-lib>
-[mrjbq7]: <https://github.com/mrjbq7>
 [@akim_int80h]: <https://t.me/akim_int80h>
 [macd strategy explained]: <https://www.investopedia.com/terms/m/macd.asp#:~:text=Moving%20average%20convergence%20divergence%20(MACD)%20is%20a%20trend%2Dfollowing,averages%20of%20a%20security's%20price.&text=Traders%20may%20buy%20the%20security,crosses%20below%20the%20signal%20line.>
