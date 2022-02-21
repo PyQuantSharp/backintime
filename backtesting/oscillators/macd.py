@@ -6,11 +6,22 @@ from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
 import ta
+import numpy
 import pandas as pd
 
 
 class MacdResults:
-    def __init__(self, macd, signal, hist):
+    """
+    Represents MACD results in macd, signal and hist properties
+    each of type :class:`numpy.ndarray`
+    with max size of value that was reserved by :class:MACD
+    """
+    def __init__(
+            self,
+            macd: numpy.ndarray,
+            signal: numpy.ndarray,
+            hist: numpy.ndarray
+    ):
         self.macd = macd
         self.signal = signal
         self.hist= hist
@@ -34,9 +45,11 @@ class MACD(Oscillator):
             timeframe: Timeframes,
             fastperiod: int=12,
             slowperiod: int=26,
-            signalperiod: int=9
+            signalperiod: int=9,
+            name: str=None
     ):
-        name = f'MACD_{timeframe.name}'
+        if not name:
+            name = f'MACD_{timeframe.name}_{period}'
         self._fastperiod = fastperiod
         self._slowperiod = slowperiod
         self._signalperiod = signalperiod
@@ -65,18 +78,21 @@ class MACD(Oscillator):
             self._signalperiod)
 
         return MacdResults(
-            macd.macd(),
-            macd.macd_signal(),
-            macd.macd_diff())
+            macd.macd().values,
+            macd.macd_signal().values,
+            macd.macd_diff().values)
 
 
 def macd(
         timeframe: Timeframes,
         fastperiod: int=12,
         slowperiod: int=26,
-        signalperiod: int=9) -> Callable:
+        signalperiod: int=9,
+        name: str=None
+) -> Callable:
     #
     return lambda market_data: MACD(
         market_data, timeframe,
-        fastperiod, slowperiod, signalperiod
+        fastperiod, slowperiod,
+        signalperiod, name
     )
