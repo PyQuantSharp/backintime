@@ -49,7 +49,7 @@ class MACD(Oscillator):
             name: str=None
     ):
         if not name:
-            name = f'MACD_{timeframe.name}_{period}'
+            name = f'MACD_{timeframe.name}'
         self._fastperiod = fastperiod
         self._slowperiod = slowperiod
         self._signalperiod = signalperiod
