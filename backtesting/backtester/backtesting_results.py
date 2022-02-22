@@ -27,6 +27,7 @@ class BacktestingResults:
         self._trades = None  # to use dataframe' .to_csv method
         self._stat = dict.fromkeys(self.__stat_keys, 0)
         self._stat['duration'] = end_date - start_date
+        
         all_profit = 0
         all_losses = 0
 
