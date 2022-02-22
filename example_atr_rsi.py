@@ -13,9 +13,9 @@ class MyStrategy(TradingStrategy):
 
     using_candles = (Timeframes.H4, Timeframes.D1)
     using_oscillators = (
-        atr(Timeframes.H4, 14, 'ATR_H4'),
-        rsi(Timeframes.H4, 14, 'RSI_H4'),
-        rsi(Timeframes.D1, 14, 'RSI_D1')
+        atr(Timeframes.H4, 14, 'ATR_H4', False),
+        rsi(Timeframes.H4, 14, 'RSI_H4', False),
+        rsi(Timeframes.D1, 14, 'RSI_D1', False)
     )
 
     def __call__(self):
