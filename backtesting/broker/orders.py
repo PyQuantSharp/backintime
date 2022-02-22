@@ -29,8 +29,6 @@ class MarketOrder(Order):
     def update(self, candle):
         time_1 = candle.open_time
 
-        print(f'Candle: {candle}')
-        
         if not self.quantity:
             self.quantity = self.notional / candle.open
         if not self.notional:
@@ -126,8 +124,7 @@ class SellOrder(Order):
     def _lock_funds(self):
         self.pledge = self._account.lock(self.quantity, base_currency=False)
         self.quantity = self.pledge
-        print(f'Sell quantity: {self.quantity}')
-
+        
 
 class MarketSell(MarketOrder, SellOrder):
     def __init__(self, quantity=None):
