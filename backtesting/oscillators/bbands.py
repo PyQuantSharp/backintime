@@ -21,7 +21,8 @@ class BBANDS(Oscillator):
             property: CandleProperties,
             period: int,
             deviation_quotient: int=2,
-            name: str=None
+            name: str=None,
+            seq: bool=True
     ):
         if not name:
             if property != CandleProperties.CLOSE:
@@ -33,6 +34,7 @@ class BBANDS(Oscillator):
         self._period = period
         self._devq = deviation_quotient
         self._reserved_size = 300
+        self.seq = seq
         super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
@@ -51,19 +53,36 @@ class BBANDS(Oscillator):
         values = pd.Series(values)
         bbands_ = BollingerBands(values, self._period, self._devq)
 
+        upperband = bbands_.bollinger_hband().values
+        middleband = bbands_.bollinger_mavg().values
+        lowerband = bbands_.bollinger_lband().values
+
+        if not self.seq:
+            upperband = upperband[-1]
+            middleband = middleband[-1]
+            lowerband = lowerband[-1]
+
+        return BBANDS.Result(
+            upperband,
+            middleband,
+            lowerband
+        )
+        '''
         return BBANDS.Result(
             bbands_.bollinger_hband().values,     # upperband
             bbands_.bollinger_mavg().values,      # middleband
             bbands_.bollinger_lband().values      # lowerband
         )
-
+        '''
 
 def bbands(
         timeframe: Timeframes,
         property: CandleProperties=CandleProperties.CLOSE,
         period: int=20,
         deviation_quotient: int=2,
-        name: str=None) -> Callable:
+        name: str=None,
+        seq: bool=True
+) -> Callable:
     #
     return lambda market_data: BBANDS(
         market_data,
@@ -71,5 +90,5 @@ def bbands(
         property,
         period,
         deviation_quotient,
-        name
+        name, seq
     )

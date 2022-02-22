@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 from .oscillator import Oscillator
 from ..timeframes import Timeframes
@@ -18,13 +18,15 @@ class SMA(Oscillator):
             timeframe: Timeframes,
             property: CandleProperties,
             period: int,
-            name: str=None
+            name: str=None,
+            seq: bool=True
     ):
         if not name:
             name = f'SMA_{timeframe.name}_{period}'
         self._property_hint = property
         self._period = period
         self._reserved_size = period
+        self.seq = seq
         super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
@@ -34,7 +36,7 @@ class SMA(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> numpy.ndarray:
+    def __call__(self) -> Union[numpy.ndarray, float]:
         values = self._market_data.get(
             self._timeframe,
             self._property_hint,
@@ -42,15 +44,21 @@ class SMA(Oscillator):
 
         values = pd.Series(values)
         sma = ta.trend.SMAIndicator(values, self._period).sma_indicator()
-        return sma.values
+        sma = sma.values
+
+        if not self.seq:
+            return sma[-1]
+        return sma
 
 
 def sma(timeframe: Timeframes,
         property: CandleProperties,
         period: int,
-        name: str=None) -> Callable:
+        name: str=None
+        seq: bool=True) -> Callable:
     #
     return lambda market_data: SMA(
         market_data, timeframe,
-        property, period, name
+        property, period,
+        name, seq
     )

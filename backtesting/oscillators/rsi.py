@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 from ta.momentum import RSIIndicator as RSIIndicator
 
 from .oscillator import Oscillator
@@ -17,12 +17,14 @@ class RSI(Oscillator):
             market_data: MarketDataStorage,
             timeframe: Timeframes,
             period: int,
-            name: str=None
+            name: str=None,
+            seq: bool=True
     ):
         if not name:
             name = f'RSI_{timeframe.name}_{period}'
         self._period = period
         self._reserved_size = 300
+        self.seq = seq
         super().__init__(market_data, timeframe, name)
 
     def reserve(self) -> None:
@@ -32,7 +34,7 @@ class RSI(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> numpy.ndarray:
+    def __call__(self) -> Union[numpy.ndarray, float]:
         close = self._market_data.get(
             self._timeframe,
             CandleProperties.CLOSE,
@@ -40,11 +42,19 @@ class RSI(Oscillator):
 
         close = pd.Series(close)
         rsi = RSIIndicator(close, self._period).rsi()
-        return rsi.values
+        rsi = rsi.values
+
+        if not self.seq:
+            return rsi[-1]
+        return rsi
 
 
 def rsi(timeframe: Timeframes,
         period: int=14,
-        name: str=None) -> Callable:
+        name: str=None,
+        seq: bool=True) -> Callable:
     #
-    return lambda market_data: RSI(market_data, timeframe, period, name)
+    return lambda market_data: RSI(
+        market_data, timeframe,
+        period, name, seq
+    )
