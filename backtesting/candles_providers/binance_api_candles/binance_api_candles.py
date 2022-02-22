@@ -29,7 +29,7 @@ class BinanceApiCandles(ApiCandles):
             allowed = list(self._binance_intervals.keys())
             raise ValueError(
                 'Binance API supports the following timeframes: {allowed}')
-                
+
         self._ticker = ticker
         self._gen = None
         super().__init__(timeframe_tag)
@@ -70,3 +70,4 @@ class BinanceApiCandles(ApiCandles):
         if not self._gen:
             self._gen = iter(self._candles())
         next(self._gen)
+        self._tick_counter.increment()
