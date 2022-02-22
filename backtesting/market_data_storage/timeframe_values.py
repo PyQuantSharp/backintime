@@ -1,13 +1,11 @@
-from typing import Iterable
+from typing import Iterable, TypeVar, Generator
 from itertools import islice
 
 from ..timeframes import Timeframes
 from ..candles_providers import CandlesProvider
 from ..candle_properties import CandleProperties
-
 from .property_buffer import PropertyBuffer
-
-import numpy
+from .float_generator import FloatGenerator
 
 
 class TimeframeValues:
@@ -19,15 +17,16 @@ class TimeframeValues:
         self._property_buffers = {}
         self._market_data = market_data
 
-    def get(self, property: CandleProperties, max_size: int):
+    def get(
+            self,
+            property: CandleProperties,
+            max_size: int
+    ) -> FloatGenerator:
+
         data = self._property_buffers[property]
         items_count = len(data)
-
-        return numpy.fromiter(
-            data.values(),
-            float,
-            min(max_size, items_count)
-        )
+        # values with idx from 0 to specified size
+        return islice(data.values(), 0, min(max_size, items_count))
 
     def get_property_buffer(self, property: CandleProperties):
         return self._property_buffers[property]

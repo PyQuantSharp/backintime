@@ -2,8 +2,7 @@ from ..candles_providers import CandlesProvider
 from ..candle_properties import CandleProperties
 from ..timeframes import Timeframes
 from .timeframe_values import TimeframeValues
-
-import numpy
+from .float_generator import FloatGenerator
 
 
 class MarketDataStorage:
@@ -20,7 +19,7 @@ class MarketDataStorage:
             timeframe: Timeframes,
             property: CandleProperties,
             max_size: int
-    ) -> numpy.ndarray:
+    ) -> FloatGenerator:
         """
         Return at most `max_size` of `property` values
         of `timeframe` candles
