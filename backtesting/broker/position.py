@@ -24,8 +24,6 @@ class Position:
         elif isinstance(order, SellOrder):
             self._volume -= order.quantity
 
-        print(f'volume: {self._volume}')
-
         if not self._volume:
             self._is_closed = True
             self._calc_profit()
