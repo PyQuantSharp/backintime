@@ -18,8 +18,8 @@ class BBANDS(Oscillator):
             self,
             market_data: MarketDataStorage,
             timeframe: Timeframes,
+            property: CandleProperties,
             period: int,
-            property: CandleProperties=CandleProperties.CLOSE,
             deviation_quotient: int=2,
             name: str=None
     ):
@@ -52,24 +52,24 @@ class BBANDS(Oscillator):
         bbands_ = BollingerBands(values, self._period, self._devq)
 
         return BBANDS.Result(
-            bbands_.bollinger_hband(),     # upperband
-            bbands_.bollinger_mavg(),      # middleband
-            bbands_.bollinger_lband()      # lowerband
+            bbands_.bollinger_hband().values,     # upperband
+            bbands_.bollinger_mavg().values,      # middleband
+            bbands_.bollinger_lband().values      # lowerband
         )
 
 
 def bbands(
         timeframe: Timeframes,
-        period: int,
         property: CandleProperties=CandleProperties.CLOSE,
+        period: int=20,
         deviation_quotient: int=2,
         name: str=None) -> Callable:
     #
     return lambda market_data: BBANDS(
         market_data,
         timeframe,
-        period,
         property,
+        period,
         deviation_quotient,
         name
     )

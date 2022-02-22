@@ -6,6 +6,7 @@ from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
 import ta
+import numpy
 import pandas as pd
 
 
@@ -33,7 +34,7 @@ class SMA(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> numpy.ndarray:
         values = self._market_data.get(
             self._timeframe,
             self._property_hint,
@@ -41,7 +42,7 @@ class SMA(Oscillator):
 
         values = pd.Series(values)
         sma = ta.trend.SMAIndicator(values, self._period).sma_indicator()
-        return sma
+        return sma.values
 
 
 def sma(timeframe: Timeframes,

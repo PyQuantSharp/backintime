@@ -6,6 +6,7 @@ from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
+import numpy
 import pandas as pd
 
 
@@ -32,14 +33,15 @@ class EMA(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> numpy.ndarray:
         values = self._market_data.get(
             self._timeframe,
             self._property_hint,
             self._reserved_size)
 
         values = pd.Series(values)
-        return EMAIndicator(values, self._period, True).ema_indicator()
+        ema = EMAIndicator(values, self._period)
+        return ema.values
 
 
 def ema(timeframe: Timeframes,

@@ -6,14 +6,18 @@ from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
+import numpy
 import pandas as pd
 
 
 class ATR(Oscillator):
 
     def __init__(
-        self, market_data: MarketDataStorage,
-        timeframe: Timeframes, period: int, name: str=None
+            self,
+            market_data: MarketDataStorage,
+            timeframe: Timeframes,
+            period: int,
+            name: str=None
     ):
         if not name:
             name = f'ATR_{timeframe.name}_{period}'
@@ -38,7 +42,7 @@ class ATR(Oscillator):
             CandleProperties.CLOSE,
             self._reserved_size)
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> numpy.ndarray:
         high = self._market_data.get(
             self._timeframe,
             CandleProperties.HIGH,
@@ -62,12 +66,12 @@ class ATR(Oscillator):
             low,
             close,
             self._period
-        ).average_true_range()
+        ).average_true_range().values
 
 
 def atr(
         timeframe: Timeframes,
-        period: int,
+        period: int=14,
         name: str=None
 ) -> Callable:
     #

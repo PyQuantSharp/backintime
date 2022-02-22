@@ -6,6 +6,7 @@ from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
 
+import numpy
 import pandas as pd
 
 
@@ -31,15 +32,19 @@ class RSI(Oscillator):
             self._reserved_size
         )
 
-    def __call__(self) -> pd.Series:
+    def __call__(self) -> numpy.ndarray:
         close = self._market_data.get(
             self._timeframe,
             CandleProperties.CLOSE,
             self._reserved_size)
 
         close = pd.Series(close)
-        return RSIIndicator(close, self._period).rsi()
+        rsi = RSIIndicator(close, self._period).rsi()
+        return rsi.values
 
 
-def rsi(timeframe: Timeframes, period: int, name: str=None) -> Callable:
+def rsi(timeframe: Timeframes,
+        period: int=14,
+        name: str=None) -> Callable:
+    #
     return lambda market_data: RSI(market_data, timeframe, period, name)
