@@ -79,7 +79,6 @@ MIT
 
  Akim Mukhtarov [@akim_int80h]
 
-[dependencies]: <https://github.com/akim-mukhtarov/backtesting#dependencies>
-[here]: <https://github.com/mrjbq7/ta-lib#dependencies>
+
 [@akim_int80h]: <https://t.me/akim_int80h>
 [macd strategy explained]: <https://www.investopedia.com/terms/m/macd.asp#:~:text=Moving%20average%20convergence%20divergence%20(MACD)%20is%20a%20trend%2Dfollowing,averages%20of%20a%20security's%20price.&text=Traders%20may%20buy%20the%20security,crosses%20below%20the%20signal%20line.>
