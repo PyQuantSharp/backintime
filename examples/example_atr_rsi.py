@@ -1,12 +1,12 @@
-from backtesting import (
+from backintime import (
     Backtester,
     BinanceApiCandles,
     TradingStrategy,
     Timeframes,
     CandleProperties
 )
-from backtesting.oscillators.atr import atr
-from backtesting.oscillators.rsi import rsi
+from backintime.oscillators.atr import atr
+from backintime.oscillators.rsi import rsi
 
 
 class MyStrategy(TradingStrategy):

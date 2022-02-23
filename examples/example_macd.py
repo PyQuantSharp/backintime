@@ -1,11 +1,11 @@
-from backtesting import (
+from backintime import (
     Backtester,
     BinanceApiCandles,
     TradingStrategy,
     Timeframes,
     CandleProperties
 )
-from backtesting.oscillators.macd import macd
+from backintime.oscillators.macd import macd
 
 
 class MacdStrategy(TradingStrategy):
