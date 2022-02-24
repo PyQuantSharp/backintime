@@ -1,5 +1,5 @@
-from .exceptions import UnsufficientFunds
-from .broker.position import Position
+from .position import Position
+from ..exceptions import UnsufficientFunds
 
 
 class TradeAccount:
