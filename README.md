@@ -1,4 +1,4 @@
-# backtesting (β)
+# backintime 0.6.1.2 (β)
 ✨ A framework for trading strategies backtesting with Python ✨  
 > Trailing stop, stop limit and OCO
 orders are not supported as of the current version.  
@@ -15,8 +15,8 @@ Expected in 1.x.x releases.
 ## This is how it looks like - MACD strategy
 see [macd strategy explained]
 ```py
-from backtesting import TradingStrategy, Timeframes
-from backtesting.oscillators.macd import macd
+from backintime import TradingStrategy, Timeframes
+from backintime.oscillators.macd import macd
 '''
 Extend TradingStrategy class and implement __call__ method
 to have your own strategy
@@ -38,7 +38,7 @@ class MacdStrategy(TradingStrategy):
 backtesting is done as follows (with binance API data):
 ```py
 # add the following import to the ones above
-from backtesting import BinanceApiCandles
+from backintime import BinanceApiCandles
 
 feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
 backtester = Backtester(MacdStrategy, feed)
@@ -52,7 +52,7 @@ res.to_csv('filename.csv', sep=';', summary=True)
 ```
 Alternatively, you can use a csv file on your local machine as source
 ```py
-from backtesting import TimeframeDump, TimeframeDumpScheme
+from backintime import TimeframeDump, TimeframeDumpScheme
 # specify column indexes in input csv
 columns = TimeframeDumpScheme(
     open_time=0, close_time=6,
@@ -67,8 +67,7 @@ print(backtester.results())
 
 ## Install
 ```sh
-git clone https://github.com/akim-mukhtarov/backtesting
-pip install backtesting/requirements.txt
+pip install backintime
 ```
 
 ## License
