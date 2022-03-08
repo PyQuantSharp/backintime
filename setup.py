@@ -7,7 +7,7 @@ with open('README.md', 'r', encoding="utf-8") as readmefile:
 
 setup(
     name = 'backintime',
-    version = '1.6.0',
+    version = '1.6.1',
     description = 'Trading strategies backtesting',
     author='Akim Mukhtarov',
     author_email = 'akim.int80h@gmail.com',

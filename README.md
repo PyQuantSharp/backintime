@@ -1,4 +1,4 @@
-# backintime 1.6.0 (β)
+# backintime 1.6.1 (β)
 ✨ A framework for trading strategies backtesting with Python ✨  
 > Trailing stop, stop limit and OCO
 orders are not supported as of the current version.  
