@@ -1,7 +1,8 @@
 from typing import Callable, Union
 from ta.volatility import AverageTrueRange as AverageTrueRange
 
-from .oscillator import Oscillator
+from .oscillator import Oscillator, DEFAULT_LOOKUP
+from .utils import dependency
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -20,54 +21,24 @@ class ATR(Oscillator):
             name: str=None,
             seq: bool=True
     ):
-        if not name:
-            name = f'ATR_{timeframe.name}_{period}'
+        name = name or f'ATR_{timeframe.name}_{period}'
+
+        deps = dependency(
+            ( timeframe, CandleProperties.HIGH, DEFAULT_LOOKUP ),
+            ( timeframe, CandleProperties.LOW, DEFAULT_LOOKUP ),
+            ( timeframe, CandleProperties.CLOSE, DEFAULT_LOOKUP )
+        )
         self._period = period
-        self._reserved_size = 300
         self.seq = seq
-        super().__init__(market_data, timeframe, name)
-
-    def reserve(self) -> None:
-        # TODO: consider change .reserve to accept list of properties
-        self._market_data.reserve(
-            self._timeframe,
-            CandleProperties.HIGH,
-            self._reserved_size)
-
-        self._market_data.reserve(
-            self._timeframe,
-            CandleProperties.LOW,
-            self._reserved_size)
-
-        self._market_data.reserve(
-            self._timeframe,
-            CandleProperties.CLOSE,
-            self._reserved_size)
+        super().__init__(deps, market_data, name)
 
     def __call__(self) -> Union[numpy.ndarray, float]:
-        high = self._market_data.get(
-            self._timeframe,
-            CandleProperties.HIGH,
-            self._reserved_size)
-        high = pd.Series(high)
-
-        low = self._market_data.get(
-            self._timeframe,
-            CandleProperties.LOW,
-            self._reserved_size)
-        low = pd.Series(low)
-
-        close = self._market_data.get(
-            self._timeframe,
-            CandleProperties.CLOSE,
-            self._reserved_size)
-        close = pd.Series(close)
+        high, low, close = list(map(
+            lambda x: pd.Series(x), self._get_values()))
 
         atr = AverageTrueRange(
-            high,
-            low,
-            close,
-            self._period
+            high, low,
+            close, self._period
         ).average_true_range().values
 
         if not self.seq:

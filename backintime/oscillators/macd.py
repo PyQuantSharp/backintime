@@ -1,6 +1,7 @@
 from typing import Callable
 
-from .oscillator import Oscillator
+from .oscillator import Oscillator, DEFAULT_LOOKUP
+from .utils import dependency
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -48,29 +49,18 @@ class MACD(Oscillator):
             signalperiod: int=9,
             name: str=None
     ):
-        if not name:
-            name = f'MACD_{timeframe.name}'
+        name = name or f'MACD_{timeframe.name}'
+        deps = dependency(
+            (timeframe, CandleProperties.CLOSE, DEFAULT_LOOKUP))
+
         self._fastperiod = fastperiod
         self._slowperiod = slowperiod
         self._signalperiod = signalperiod
-        self._reserved_size = 300
-        super().__init__(market_data, timeframe, name)
 
-    def reserve(self) -> None:
-        self._market_data.reserve(
-            self._timeframe,
-            CandleProperties.CLOSE,
-            self._reserved_size
-        )
+        super().__init__(deps, market_data, name)
 
     def __call__(self) -> MacdResults:
-        close = self._market_data.get(
-            self._timeframe,
-            CandleProperties.CLOSE,
-            self._reserved_size)
-
-        close = pd.Series(close)
-
+        close = pd.Series(self._get_values())
         macd = ta.trend.MACD(
             close,
             self._slowperiod,

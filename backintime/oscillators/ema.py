@@ -1,7 +1,8 @@
 from typing import Callable, Union
 from ta.trend import EMAIndicator as EMAIndicator
 
-from .oscillator import Oscillator
+from .oscillator import Oscillator, DEFAULT_LOOKUP
+from .utils import dependency
 from ..timeframes import Timeframes
 from ..market_data_storage import MarketDataStorage
 from ..candle_properties import CandleProperties
@@ -21,28 +22,16 @@ class EMA(Oscillator):
             name: str=None,
             seq: bool=True
     ):
-        if not name:
-            name = f'EMA_{timeframe.name}_{period}'
-        self._property_hint = property
-        self._period = period
-        self._reserved_size = 100
-        self.seq = seq
-        super().__init__(market_data, timeframe, name)
+        name = name or f'EMA_{timeframe.name}_{preiod}'
+        deps = dependency(
+            (timeframe, property, DEFAULT_LOOKUP))
 
-    def reserve(self) -> None:
-        self._market_data.reserve(
-            self._timeframe,
-            self._property_hint,
-            self._reserved_size
-        )
+        self._period = period
+        self.seq = seq
+        super().__init__(deps, market_data, name)
 
     def __call__(self) -> Union[numpy.ndarray, float]:
-        values = self._market_data.get(
-            self._timeframe,
-            self._property_hint,
-            self._reserved_size)
-
-        values = pd.Series(values)
+        values = pd.Series(self._get_values())
         ema = EMAIndicator(values, self._period).ema_indicator()
         ema = ema.values
 
