@@ -1,13 +1,13 @@
 from distutils.core import setup
 
 
-with open('README.md', 'r') as readmefile:
+with open('README.md', 'r', encoding="utf-8") as readmefile:
     readme = readmefile.read()
 
 
 setup(
     name = 'backintime',
-    version = '0.6.1.2',
+    version = '1.6.0',
     description = 'Trading strategies backtesting',
     author='Akim Mukhtarov',
     author_email = 'akim.int80h@gmail.com',
