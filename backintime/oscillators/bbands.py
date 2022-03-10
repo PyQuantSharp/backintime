@@ -40,7 +40,7 @@ class BBANDS(Oscillator):
         super().__init__(deps, market_data, name)
 
     def __call__(self) -> Result:
-        values = pd.Series(elf._get_values())
+        values = pd.Series(self._get_values())
         bbands_ = BollingerBands(values, self._period, self._devq)
 
         upperband = bbands_.bollinger_hband().values

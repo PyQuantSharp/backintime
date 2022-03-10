@@ -46,18 +46,7 @@ class TimeframeDump(CandlesProvider):
             while open_time < self._start_date:
                 _, row = next(self._gen)
                 open_time = row[self._scheme.open_time_idx]
-        '''
-        # snippet to catch malformed
-        # input with time loops
-        # for debug mostly
-        if self._prev_time:
-            while open_time < self._prev_time:
-                # skip rows with invalid date
-                _, row = next(self._gen)
-                open_time = row[self._scheme.open_time_idx]
-        self._prev_time = open_time
-        # end snippet
-        '''
+
         self._candle_buffer.open_time = open_time
         to_candle(row, scheme, self._candle_buffer)
         self._tick_counter.increment()
