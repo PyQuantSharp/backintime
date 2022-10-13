@@ -1,6 +1,6 @@
 import typing as t
 from backintime.v163.broker import Broker
-from backintime.v163.data import DataProvider, Candle
+from backintime.v163.data.data_provider import DataProvider, Candle
 
 
 class Exchange(Broker):
@@ -13,7 +13,10 @@ class Exchange(Broker):
 	def get_accounts(self) -> float:
 		pass
 
-	def candles(self) -> t.Generator[Candle]:
+	def get_trades(self) -> list:
+		pass
+
+	def candles(self) -> t.Generator[Candle, None, None]:
 		for candle in self._data:
 			self._update(candle)
 			yield candle

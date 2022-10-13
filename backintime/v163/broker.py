@@ -11,3 +11,7 @@ class Broker(ABC):
 	@abstractmethod
 	def get_accounts(self) -> float:
 		pass
+
+	@abstractmethod
+	def get_trades(self) -> list:
+		pass
