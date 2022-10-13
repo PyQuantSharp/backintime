@@ -1,19 +1,33 @@
 import typing as t
-import datetime
 
+from datetime import datetime
 from backintime.v163.trading_strategy import TradingStrategy
+from backintime.v163.data.data_provider import DataProvider
 from backintime.v163.exchange import Exchange
-from backintime.v163.data import DataProvider
+from backintime.v163.analyser import Analyser, AnalyserBuffer
+from backintime.v163.candles import Candles, CandlesBuffer
 
 
 class Backtester:
 	def __init__(self, 
 				 strategy_t: t.Type[TradingStrategy], 
 				 market_data: DataProvider):
-		self._exchange = Exchange(market_data)
-		self._strategy = strategy_t(broker=self._exchange)
+		self._strategy_t = strategy_t
+		self._market_data = market_data
 
-	def run(self, since: datetime.datetime, until: datetime.datetime):
-		for candle in self._exchange.candles():
-			self._strategy.tick(candle)
-		return self._exchange.get_trades() # and wrap to `Result` with IO methods
+	def run(self, since: datetime, until: datetime):
+		analyser_buffer = AnalyserBuffer()
+		candles_buffer = CandlesBuffer()
+		exchange = Exchange(self._market_data)
+		analyser = Analyser(self._strategy_t.oscillators, analyser_buffer)
+		candles = Candles(self._strategy_t.timeframes, candles_buffer)
+		strategy = self._strategy_t(exchange, analyser, candles)
+		ticks = 0
+
+		for candle in exchange.candles():
+			ticks += 1
+			analyser_buffer.update(candle, ticks)
+			candles_buffer.update(candle, ticks)
+			strategy.tick()
+
+		return exchange.get_trades() # wrap to instance with output methods
