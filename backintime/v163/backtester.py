@@ -17,17 +17,17 @@ class Backtester:
 
 	def run(self, since: datetime, until: datetime):
 		analyser_buffer = AnalyserBuffer()
-		candles_buffer = CandlesBuffer()
+		candles_buffer = CandlesBuffer(self._strategy_t.timeframes)
 		exchange = Exchange(self._market_data)
 		analyser = Analyser(self._strategy_t.oscillators, analyser_buffer)
-		candles = Candles(self._strategy_t.timeframes, candles_buffer)
+		candles = Candles(candles_buffer)
 		strategy = self._strategy_t(exchange, analyser, candles)
 		ticks = 0
 
 		for candle in exchange.candles():
-			ticks += 1
 			analyser_buffer.update(candle, ticks)
 			candles_buffer.update(candle, ticks)
 			strategy.tick()
+            ticks += 1
 
 		return exchange.get_trades() # wrap to instance with output methods
