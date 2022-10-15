@@ -8,7 +8,7 @@
 
 ## Implementation tweaks:
 - Rewrite candles providers implementing `Iterator` and `Generator`  
-- In `TradingStrategy` change `__call__` method to `tick` to emphasise the expected event 
+- In `TradingStrategy` change `__call__` method to `tick` to emphasise expected event 
 - Make `Oscillator` stateless, instead pass all required data to `__call__` method 
 - Change dates accepted by `Backtester` to `datetime` (instead of `str` in ISO format) 
 - Update buffers for timeframe candles and oscillators in `Backtester.run`  
