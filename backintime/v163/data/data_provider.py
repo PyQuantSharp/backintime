@@ -1,24 +1,16 @@
 import typing as t
 
-from datetime import datetime
 from collections import abc
 from abc import abstractmethod
-from dataclasses import dataclass
-
-
-@dataclass
-class Candle:
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
-    open_time: datetime
-    close_time: datetime
-    is_closed: t.Optional[bool]=True
+from backintime.v163.timeframes import Timeframes
+from .candle import Canlde
 
 
 class DataProvider(abc.Iterable):
+    @abstractmethod
+    def timeframe(self) -> Timeframes:
+        pass
+        
 	@abstractmethod
 	def __iter__(self) -> t.Iterator[Candle]:
 		pass

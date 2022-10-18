@@ -1,6 +1,7 @@
 import typing as t
 from backintime.v163.broker import Broker
-from backintime.v163.data.data_provider import DataProvider, Candle
+from backintime.v163.data.candle import Candle
+from backintime.v163.data.data_provider import DataProvider
 
 
 class Exchange(Broker):

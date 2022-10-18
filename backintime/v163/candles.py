@@ -1,6 +1,6 @@
 import typing as t
 
-from backintime.v163.data.data_provider import Candle
+from backintime.v163.data.candle import Candle
 from backintime.v163.timeframes import Timeframes as tf
 
 
