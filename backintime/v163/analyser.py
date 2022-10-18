@@ -3,46 +3,37 @@ import typing as t
 from collections import deque
 from dataclasses import dataclass
 from itertools import islice
-from backintime.v163.data.data_provider import Candle
-from backintime.v163.oscillators import Oscillator, OscillatorParam
+from backintime.v163.data.candle import Candle
+from backintime.v163.oscillators import Oscillator
 from backintime.v163.timeframes import Timeframes as tf
 from backintime.v163.candle_properties import CandleProperties as CandleProps
 
 
-@dataclass
-class OscillatorParam:
-    timeframe: tf
-    candle_property: CandleProps
+@dataclass 
+class Value:
+    timeframe: tf 
+    candle_property: CandleProps 
     quantity: int
-    values: t.Optional[t.List[float]]
+    values: t.List[float]
 
 
 class AnalyserBuffer:
-    def __init__(self, params: t.Iterable[OscillatorParam], base_timeframe: tf):
+    def __init__(self, params: t.Iterable[Value], base_timeframe: tf):
         self._base_timeframe=base_timeframe
-        self._data = self._prepare(params)
-
-    def _prepare(self, params: t.Iterable[OscillatorParam]) -> dict:
-        data = {}
-        for param in params:
-            if not param.timeframe in data:
-                data[param.timeframe] = {
-                    param.candle_property : deque(param.quantity)
-                }
-            else:
-                tf_data = data[param.timeframe]
-                buffer = tf_data.get(param.candle_property, [])
-                tf_data[param.candle_property] = deque(buffer, 
-                                                       param.quantity)
-        return data
+        self._data = {
+            param.timeframe : {
+                param.candle_property : deque(param.values, 
+                                              maxlen=param.quantity)
+            } for param in params
+        }
 
     def get(self, 
             timeframe: tf, 
             candle_property: CandleProps, 
             quantity: int) -> t.List[float]:
         data = self._data[timeframe][candle_property]
-        return list(islice(data, 0, min(quantity, data.maxlen)))
-        
+        return list(islice(data, data.maxlen - quantity, data.maxlen))
+
     def update(self, candle: Candle, ticks: int) -> None:
         for timeframe, tf_data in self._data.items():
             ratio = timeframe.value/self._base_timeframe.value
@@ -98,4 +89,3 @@ class Analyser:
     def get_last(self, name: str, timeframe: tf) -> t.Any:
         """ Get last oscillator value """
         pass
-        
