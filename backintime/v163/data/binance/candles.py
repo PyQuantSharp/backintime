@@ -4,7 +4,8 @@ import typing as t
 import requests as r
 from datetime import datetime, timezone
 from collections import abc
-from backintime.v163.data.data_provider import DataProvider, Candle
+from backintime.v163.data.candle import Candle
+from backintime.v163.data.data_provider import DataProvider
 from backintime.v163.timeframes import Timeframes as tf
 from .utils import to_ms, parse_candle
 
@@ -86,3 +87,6 @@ class BinanceCandles(DataProvider):
                                       self._timeframe,
                                       self._since,
                                       self._until)
+
+    def timeframe(self) -> Timeframe:
+        return self._timeframe
