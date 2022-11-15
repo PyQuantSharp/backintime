@@ -1,6 +1,7 @@
 import typing as t
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from .orders import OrderFactory, OrderInfo
 
 
 @dataclass
@@ -46,9 +47,9 @@ class AbstractBroker(ABC):
         pass
 
     @abstractmethod
-    def submit_order(self, **kwargs) -> t.Any:
+    def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         pass
-    
+
     @abstractmethod
     def cancel_order(self, order) -> None:
         pass
