@@ -11,7 +11,37 @@ class OrderStatus(Enum):
     # Only for stop loss orders
     ACTIVATED = "ACTIVATED"
 
+'''
+As for now, I see two variants of implementing orders
+1) 'Struct' 
+        All fields are public. It is up to a broker to set up status,
+        `executed_date`, `canceled_date` fields. TP/SL orders, however,
+        contain additional features:
+            - multiple TP/SL orders can be posted for the same position, 
+                so, when an order is canceled/executed, all other orders
+                posted for the same position must be canceled
+            - when SL order is activated, new limit sell order must be posted
+        To implement it, `hooks` field can be added TP/SL orders to hold 
+        unbound functions implementing appropriate functions.
+        It is up to a broker to invoke this methods.
+2) 'Classes'
+        All fields are protected, state transition is implemented via public
+        methods, as usual. To implement additional features of TP/SL orders,
+        orders can be instantiated with a reference to a broker.
+        For instance, when SL order is activated, new limit can be posted
+        invoking broker.submit_order method
+        However, since `Broker` and orders references each other, code 
+        must be splitted into interfaces to avoid circular import problem,
+        for instance:
+        - broker/
+                base.py (AbstractBroker, requires AbstractOrderFactory)
+                broker.py (Broker)
+        - orders/
+                base.py (AbstractOrderFactory)
+                orders.py (requires AbstractBroker and AbstractOrderFactory)
 
+At least classes hierarchy is (kind of) clear and almost implemented
+'''
 class Order:
     """ Base class for all orders """
     def __init__(self, amount: float, price: t.Optional[float]=None):
