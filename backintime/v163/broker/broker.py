@@ -53,3 +53,20 @@ class AbstractBroker(ABC):
     @abstractmethod
     def cancel_order(self, order) -> None:
         pass
+
+
+class Broker(AbstractBroker):
+    def get_balance(self) -> Balance:
+        pass
+    
+    def get_fiat_balance(self) -> float:
+        pass
+    
+    def get_crypto_balance(self) -> float:
+        pass
+    
+    def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
+        pass
+
+    def cancel_order(self, order) -> None:
+        pass
