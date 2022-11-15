@@ -1,143 +1,201 @@
+import typing as t
+from abc import ABC, abstractmethod
 from enum import Enum
-
-from .trade import Trade
-from ..exceptions import UnsufficientFunds
+from datetime import datetime
 
 
-OrderStatus=Enum('OrderStatus', 'Created Submitted Cancelled Executed')
-OrderTypes=Enum('OrderTypes', 'Market Limit')
+class OrderStatus(Enum):
+    CREATED = "CREATED"
+    CANCELED = "CANCELED"
+    EXECUTED = "EXECUTED"
+    # Only for stop loss orders
+    ACTIVATED = "ACTIVATED"
 
+'''
+As for now, I see two variants of implementing orders
+1) 'Struct' 
+        All fields are public. It is up to a broker to set up status,
+        `executed_date`, `canceled_date` fields. TP/SL orders, however,
+        contain additional features:
+            - multiple TP/SL orders can be posted for the same position, 
+                so, when an order is canceled/executed, all other orders
+                posted for the same position must be canceled
+            - when SL order is activated, new limit sell order must be posted
+        To implement it, `hooks` field can be added TP/SL orders to hold 
+        unbound functions implementing appropriate functions.
+        It is up to a broker to invoke this methods.
+2) 'Classes'
+        All fields are protected, state transition is implemented via public
+        methods, as usual. To implement additional features of TP/SL orders,
+        orders can be instantiated with a reference to a broker.
+        For instance, when SL order is activated, new limit can be posted
+        invoking broker.submit_order method
+        However, since `Broker` and orders references each other, code 
+        must be splitted into interfaces to avoid circular import problem,
+        for instance:
+        - broker/
+                base.py (AbstractBroker, requires AbstractOrderFactory)
+                broker.py (Broker)
+        - orders/
+                base.py (AbstractOrderFactory)
+                orders.py (requires AbstractBroker and AbstractOrderFactory)
 
+At least classes hierarchy is (kind of) clear and almost implemented
+'''
 class Order:
-    def __init__(self, order_type: OrderTypes, price=None, quantity=None):
-        self.type=order_type
-        self.price=price
-        self.quantity=quantity
-        self.pledge=None    # сколько денег мы сняли с аккаунта для обесп. ордера
-        self.notional=None  # реальная стоимость ордера
-        self._account=None  # reserved to be completed by broker later
-        self._fee = None    # reserved to be completed by broker later
-        self._status=OrderStatus.Created
-
-    def __repr__(self):
-        return (
-            f'<Order> ({self.notional}, {self.price},'
-            f'{self.quantity}, {self.pledge}, {self._status})')
-
-
-class MarketOrder(Order):
-    def update(self, candle):
-        time_1 = candle.open_time
-
-        if not self.quantity:
-            self.quantity = self.notional / candle.open
-        if not self.notional:
-            self.notional = self.quantity*candle.open
-        trade = self._execute(candle.open, time_1, time_1)
-        return trade
-
-
-class LimitOrder(Order):
-    def __init__(self, price=None, quantity=None):
-        super().__init__(OrderTypes.Limit, price, quantity)
-
-    def _match_price(self, candle):
-        if self.price >= candle.low and self.price <= candle.high:
-            return self.price
-        else:
-            return None
-
-    def update(self, candle):
-        time_1 = candle.open_time
-
-        if (price := self._match_price(order, candle)):
-            time_2 = candle.close_time
-            trade = self._execute(order, price, time_1, time_2)
-            return trade
-
-class BuyOrder(Order):
-    def _execute(self, price, time_1, time_2):
-        fee = self.pledge - self.notional
-        profit = - self.pledge
-        self.price = price  # ?
-        self._account.mod_balance(self.quantity, False)
-        return Trade(time_1, time_2, self, profit, fee)
-
-
-class MarketBuy(MarketOrder, BuyOrder):
-
-    def __init__(self, quantity=None):
-        super().__init__(OrderTypes.Market, None, quantity)
-
-    def _execute(self, price, time_1, time_2):
-        if not self.pledge:
-            price = self.notional
-            fee = self._fee(price)
-            price += fee
-
-            if price >= self._account.base_currency_balance():
-                raise UnsufficientFunds()
-            profit = - price
-            self._account.mod_balance(profit)
-        else:
-            fee = self.pledge - self.notional
-            profit = - self.pledge
+    """ Base class for all orders """
+    def __init__(self, amount: float, price: t.Optional[float]=None):
+        self.amount = amount
         self.price = price
-        self._account.mod_balance(self.quantity, False)
-        return Trade(time_1, time_2, self, profit, fee)
-
-
-    def _lock_funds(self):
-        if not self.quantity:
-            self.pledge = self._account.lock()
-            fee = self._fee(self.pledge)
-            # закладываем комиссю в notional = сможем купить чуть меньше
-            self.notional = self.pledge - fee
-
-
-class LimitBuy(LimitOrder, BuyOrder):
-    def _lock_funds(self):
-        if self.quantity:
-            self.notional = self.price*self.quantity
-            fee = self._fee(self.notional, False)
-            total_price = self.notional + fee
-            # снимаем деньги с комиссией. А ордер и так сформирован
-            self.pledge = self._account.lock(total_price)
-        else:
-            self.pledge = self._account.lock()
-            fee = self._fee(self.pledge, False)
-            # закладываем комиссю в notional = сможем купить чуть меньше
-            self.notional = self.pledge - fee
-            self.quantity = self.notional / self.price
+        self.status = OrderStatus.CREATED
+        self.created_date = datetime.utcnow()   # TZ?
+        self.canceled_date: t.Optional[datetime] = None
+        self.executed_date: t.Optional[datetime] = None
 
 
 class SellOrder(Order):
-    def _execute(self, price, time_1, time_2):
-        # profit without fee
-        profit = self.notional
-        # profit minus fee
-        fee = self._fee(profit, self.type==OrderTypes.Market)
-        profit -= fee
-        self._account.mod_balance(profit)
-        return Trade(time_1, time_2, self, profit, fee)
-
-    def _lock_funds(self):
-        self.pledge = self._account.lock(self.quantity, base_currency=False)
-        self.quantity = self.pledge
-        
-
-class MarketSell(MarketOrder, SellOrder):
-    def __init__(self, quantity=None):
-        super().__init__(OrderTypes.Market, None, quantity)
-
-    def _execute(self, price, time_1, time_2):
-        if not self.price:
-            self.price = self
-        return super()._execute(price, time_1, time_2)
+    # TODO: define position type
+    def __init__(self, 
+                 position: t.Any, 
+                 amount: float, 
+                 price: t.Optional[float]=None):
+        self.position=position
+        super().__init__(amount, price)
 
 
-class LimitSell(LimitOrder, SellOrder):
-    def _lock_funds(self):
-        # все как у селл
-        super()._lock_funds()
-        self.notional = self.price*self.quantity
+class MarketSellOrder(SellOrder):
+    def __init__(self, position: t.Any, amount: float):
+        super().__init__(position, amount)
+
+
+class LimitSellOrder(SellOrder):
+    def __init__(self, position: t.Any, amount: float, price: float):
+        super().__init__(position, amount, price)
+
+# TP/SL have additional functionality
+#   it can be implemented as unbound function and
+#   saved in hooks.
+class TakeProfitOrder(SellOrder):
+    # TODO: define position type
+    def __init__(self, 
+                 amount: float,
+                 price: float,
+                 position: t.Any, 
+                 hooks: t.Any):
+        self.hooks: t.Any = hooks
+        super().__init__(position, amount, price)
+
+
+class StopLossOrder(SellOrder):
+    # TODO: define position type
+    def __init__(self, 
+                 amount: float,
+                 price: float,
+                 position: t.Any, 
+                 hooks: t.Any):
+        self.hooks: t.Any = hooks
+        super().__init__(position, amount, price)
+
+# Factories
+# TODO: implement factories for all orders
+class OrderFactory(ABC):
+    @abstractmethod
+    def create(self) -> Order:
+        pass
+
+
+class TakeProfitFactory(OrderFactory):
+    def __init__(self):
+        # TODO: define ctor params
+        pass
+
+    def create(self) -> TakeProfitOrder:
+        pass
+
+
+class StopLossFactory(OrderFactory):
+    def __init__(self):
+        # TODO: define ctor params
+        pass
+
+    def create(self) -> StopLossOrder:
+        pass
+# End Factories
+
+class BuyOrder(Order):
+    def __init__(self,
+                 amount: float,
+                 price: float = None,
+                 take_profit_factory: t.Optional[TakeProfitFactory] = None,
+                 stop_loss_factory: t.Optional[StopLossFactory] = None):
+        self.take_profit_factory = take_profit_factory
+        self.stop_loss_factory = stop_loss_factory
+        self.take_profit: t.Optional[TakeProfitOrder] = None
+        self.stop_loss: t.Optional[StopLossOrder] = None
+        super().__init__(amount, price)
+
+
+class MarketBuyOrder(BuyOrder):
+    def __init__(self,
+                 amount: float,
+                 take_profit_factory: t.Optional[TakeProfitFactory] = None,
+                 stop_loss_factory: t.Optional[StopLossFactory] = None):
+        super().__init__(amount, take_profit_factory, stop_loss_factory)
+
+
+class LimitBuyOrder(BuyOrder):
+    def __init__(self,
+                 amount: float,
+                 price: float,
+                 take_profit_factory: t.Optional[TakeProfitFactory] = None,
+                 stop_loss_factory: t.Optional[StopLossFactory] = None):
+        super().__init__(amount, price, 
+                         take_profit_factory, stop_loss_factory)
+
+# Wrappers for public usage - only getters
+class OrderInfo:
+    def __init__(self, order: Order):
+        self._order = order
+
+    @property 
+    def amount(self) -> float:
+        return self._order.amount
+
+    @property 
+    def price(self) -> t.Optional[float]:
+        return self._order.price
+
+    @property 
+    def status(self) -> OrderStatus:
+        return self._order.status
+
+    @property 
+    def created_date(self) -> datetime:
+        return self._order.created_date
+
+    @property 
+    def canceled_date(self) -> t.Optional[datetime]:
+        return self._order.canceled_date
+
+    @property 
+    def executed_date(self) -> t.Optional[datetime]:
+        return self._order.executed_date
+
+    @property 
+    def is_unfulfilled(self) -> bool:
+        return self._order.status is OrderStatus.CREATED
+
+    @property 
+    def is_canceled(self) -> bool:
+        return self._order.status is OrderStatus.CANCELED
+
+    @property 
+    def is_executed(self) -> bool:
+        return self._order.status is OrderStatus.EXECUTED
+
+
+class StopLossOrderInfo(OrderInfo):
+    @property
+    def is_activated(self) -> bool:
+        return self._order.status is OrderStatus.ACTIVATED
+# End wrappers
