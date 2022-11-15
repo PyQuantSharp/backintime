@@ -1,74 +1,18 @@
-# backintime 1.6.1 (β)
+# backintime 1.6.3
 ✨ A framework for trading strategies backtesting with Python ✨  
-> Trailing stop, stop limit and OCO
-orders are not supported as of the current version.  
-Expected in 1.x.x releases.   
+> Branch for the new version (not yet released). 
+  In this version, I'll implement trailing stop and stop loss orders, fix bugs,
+  rewrite internals in a more clear and OOP way and improve type hints in all package  
+  Note: as for now, this is neither stable nor working code.   
 
 ## Features
-- Market/Limit orders management
+- Market, limit, take profit, stop loss orders management
 - Use CSV or Binance API as a data source
 - The same data can be represented in up to 16 timeframes  
     (few short candles is compressed to longer one)
 - Brief trading history statistics (win rate, avg. profit, etc.)
 - Export trades to csv
 
-## This is how it looks like - MACD strategy
-see [macd strategy explained]
-```py
-from backintime import TradingStrategy, Timeframes
-from backintime.oscillators.macd import macd
-'''
-Extend TradingStrategy class and implement __call__ method
-to have your own strategy
-'''
-class MacdStrategy(TradingStrategy):
-    # declare required oscillators here for later use
-    using_oscillators = ( macd(Timeframes.H4), )
-
-    def __call__(self):
-        # runs each time a new candle closes
-        macd = self.oscillators.get('MACD_H4')
-
-        if not self.position and macd.crossover_up():
-            self._buy()     # buy at market
-
-        elif self.position and macd.crossover_down():
-            self._sell()    # sell at market
-```
-backtesting is done as follows (with binance API data):
-```py
-# add the following import to the ones above
-from backintime import BinanceApiCandles
-
-feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
-backtester = Backtester(MacdStrategy, feed)
-
-backtester.run_test(since='2020-01-01', start_money=10000)
-# the result is available as a printable instance
-res = backtester.results()
-print(res)
-# and also can be saved to a csv file
-res.to_csv('filename.csv', sep=';', summary=True)
-```
-Alternatively, you can use a csv file on your local machine as source
-```py
-from backintime import TimeframeDump, TimeframeDumpScheme
-# specify column indexes in input csv
-columns = TimeframeDumpScheme(
-    open_time=0, close_time=6,
-    open=1, high=3, low=4,
-    close=2, volume=5)
-
-feed = TimeframeDump('h4.csv', Timeframes.H4, columns)
-backtester = Backtester(MacdStrategy, feed)
-backtester.run_test('2020-01-01', 10000)
-print(backtester.results())
-```
-
-## Install
-```sh
-pip install backintime
-```
 
 ## License
 
