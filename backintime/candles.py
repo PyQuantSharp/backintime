@@ -8,19 +8,19 @@ class CandlesBuffer:
     def __init__(self, timeframes: t.Iterable[tf], base_timeframe: tf):
         self._base_timeframe = base_timeframe
         self._data = { 
-			timeframe: Candle(open_time=None,
-							  open=0, high=0,
-							  low=0, close=0,
-							  volume=0,
-							  close_time=None)
-				for timeframe in timeframes 
-		}
+            timeframe: Candle(open_time=None,
+                              open=0, high=0,
+                              low=0, close=0,
+                              volume=0,
+                              close_time=None)
+                for timeframe in timeframes 
+        }
 
-	def get(self, timeframe: tf) -> Candle:
-		return self._data[timeframe]
+    def get(self, timeframe: tf) -> Candle:
+        return self._data[timeframe]
 
-	def update(self, candle: Candle, ticks: int) -> None:
-		for timeframe in self._data:
+    def update(self, candle: Candle, ticks: int) -> None:
+        for timeframe in self._data:
             self._update_candle(timeframe, candle, ticks), 
 
     def _update_candle(self, 
@@ -45,9 +45,9 @@ class CandlesBuffer:
 
 
 class Candles:
-	def __init__(self, buffer: CandlesBuffer):
-		self._buffer=buffer
+    def __init__(self, buffer: CandlesBuffer):
+        self._buffer=buffer
 
-	def get(self, timeframe: tf) -> Candle:
-		return self._buffer.get(timeframe)
+    def get(self, timeframe: tf) -> Candle:
+        return self._buffer.get(timeframe)
         
