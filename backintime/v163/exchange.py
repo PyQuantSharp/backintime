@@ -8,15 +8,6 @@ class Exchange(Broker):
 	def __init__(self, data: DataProvider):
 		self._data=data
 
-	def submit_order(self) -> None:
-		pass 
-
-	def get_accounts(self) -> float:
-		pass
-
-	def get_trades(self) -> list:
-		pass
-
 	def candles(self) -> t.Generator[Candle, None, None]:
 		for candle in self._data:
 			self._update(candle)
