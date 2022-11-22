@@ -111,7 +111,7 @@ class LimitOrderInfo(OrderInfo):
 
 class AbstractBroker(ABC):
     @abstractmethod
-    def get_balance(self) -> Balance:
+    def get_balance(self) -> BalanceInfo:
         pass
     
     @abstractmethod
@@ -123,7 +123,7 @@ class AbstractBroker(ABC):
         pass
 
     @abstractmethod
-    def submit_order(self, order_factory: OrderFactory) -> Order:
+    def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         pass
 
     @abstractmethod
@@ -132,9 +132,9 @@ class AbstractBroker(ABC):
 
 
 class Broker(AbstractBroker):
-    def get_balance(self) -> Balance:
+    def get_balance(self) -> BalanceInfo:
         pass
-    
+
     def get_fiat_balance(self) -> float:
         pass
     
