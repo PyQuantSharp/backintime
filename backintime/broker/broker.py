@@ -123,11 +123,11 @@ class AbstractBroker(ABC):
         pass
 
     @abstractmethod
-    def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
+    def submit_order(self, order_factory: OrderFactory) -> Order:
         pass
 
     @abstractmethod
-    def cancel_order(self, order) -> None:
+    def cancel_order(self, order_id: int) -> None:
         pass
 
 
@@ -144,5 +144,5 @@ class Broker(AbstractBroker):
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         pass
 
-    def cancel_order(self, order) -> None:
+    def cancel_order(self, order_id: int) -> None:
         pass
