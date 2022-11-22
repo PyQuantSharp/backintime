@@ -1,19 +1,28 @@
 import typing as t
+import functools
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from .orders import OrderFactory, OrderInfo
+from datetime import datetime
+from itertools import count
+from .balance import Balance
+from .orders import (
+    OrderSide,
+    Order, 
+    OrderStatus, 
+    OrderFactory, 
+    MarketOrder, 
+    LimitOrder, 
+    StopLossOrder,
+    TakeProfitOrder
+)
 
 
-@dataclass
-class BalanceData:
-    fiat_balance: float
-    available_fiat_balance: float
-    crypto_balance: float
-    available_crypto_balance: float
-
-
-class Balance:
-    def __init__(self, data: BalanceData):
+class BalanceInfo:
+    """
+    Wrapper around `Balance` that provides a read-only view
+    into the wrapped `Balance` data.
+    """
+    def __init__(self, data: Balance):
         self._data = data
 
     @property
@@ -31,6 +40,86 @@ class Balance:
     @property
     def crypto_balance(self) -> float:
         return self._data.crypto_balance
+
+
+class OrderInfo:
+    """
+    Wrapper around `Order` that provides a read-only view
+    into the wrapped `Order` data.
+    """
+    def __init__(self, order_id: int, order: Order):
+        self._order_id = order_id
+        self._order = order
+
+    @property
+    def order_id(self) -> int:
+        return self._order_id
+
+    @property 
+    def amount(self) -> float:
+        return self._order.amount
+
+    @property 
+    def order_price(self) -> t.Optional[float]:
+        return self._order.order_price
+
+    @property 
+    def status(self) -> OrderStatus:
+        return self._order.status
+
+    @property 
+    def created_date(self) -> datetime:
+        return self._order.created_date
+
+    @property 
+    def canceled_date(self) -> t.Optional[datetime]:
+        return self._order.canceled_date
+
+    @property 
+    def executed_date(self) -> t.Optional[datetime]:
+        return self._order.executed_date
+
+    @property 
+    def is_unfulfilled(self) -> bool:
+        return self._order.status is OrderStatus.CREATED
+
+    @property 
+    def is_canceled(self) -> bool:
+        return self._order.status is OrderStatus.CANCELED
+
+    @property 
+    def is_executed(self) -> bool:
+        return self._order.status is OrderStatus.EXECUTED
+
+
+class StrategyOrderInfo(OrderInfo):
+    @property
+    def trigger_price(self) -> float:
+        return self._order.trigger_price
+
+    @property
+    def is_activated(self) -> bool:
+        return self._order.status is OrderStatus.ACTIVATED
+
+
+@dataclass
+class StrategyOrders:
+    take_profit: t.Optional[StrategyOrderInfo] = None 
+    stop_loss: t.Optional[StrategyOrderInfo] = None 
+
+
+class LimitOrderInfo(OrderInfo):
+    def __init__(self, order_id: int, order, strategy_orders: StrategyOrders):
+        self._strategy_orders = strategy_orders
+        super().__init__(order_id, order)
+
+    @property 
+    def take_profit(self) -> t.Optional[StrategyOrderInfo]:
+        return self._strategy_orders.take_profit
+
+    @property
+    def stop_loss(self) -> t.Optional[StrategyOrderInfo]:
+        return self._strategy_orders.stop_loss
 
 
 class AbstractBroker(ABC):
