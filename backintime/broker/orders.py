@@ -17,7 +17,6 @@ All fields are public. It is up to a broker implementation to set
 import typing as t
 from abc import ABC, abstractmethod
 from enum import Enum
-from datetime import datetime
 
 
 class OrderSide(Enum):
@@ -44,9 +43,6 @@ class Order:
         self.order_price = order_price
         self.fill_price: t.Optional[float] = None
         self.status = OrderStatus.CREATED
-        self.created_date = datetime.utcnow()   # TZ?
-        self.canceled_date: t.Optional[datetime] = None
-        self.executed_date: t.Optional[datetime] = None
 
 # Strategy orders have trigger price
 class StrategyOrder(Order):

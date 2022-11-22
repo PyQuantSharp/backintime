@@ -2,7 +2,6 @@ import typing as t
 import functools
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from datetime import datetime
 from itertools import count
 from .balance import Balance
 from .orders import (
@@ -66,18 +65,6 @@ class OrderInfo:
     @property 
     def status(self) -> OrderStatus:
         return self._order.status
-
-    @property 
-    def created_date(self) -> datetime:
-        return self._order.created_date
-
-    @property 
-    def canceled_date(self) -> t.Optional[datetime]:
-        return self._order.canceled_date
-
-    @property 
-    def executed_date(self) -> t.Optional[datetime]:
-        return self._order.executed_date
 
     @property 
     def is_unfulfilled(self) -> bool:
