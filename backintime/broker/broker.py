@@ -297,6 +297,16 @@ class OrderSubmissionError(Exception): pass
 class OrderCancellationError(Exception): pass
 
 
+MatchPredicates = t.TypeVar(
+                "MatchPredicates", 
+                bound=t.Generator[t.Callable[[float], bool], None, None])
+
+def _get_match_predicates(candle) -> MatchPredicates:
+    yield lambda price: price == candle.OPEN
+    yield lambda price: price >= candle.LOW and price <= candle.HIGH
+    yield lambda price: price == candle.CLOSE
+
+
 class Broker(AbstractBroker):
     """
     Broker provides orders management in a simulated
