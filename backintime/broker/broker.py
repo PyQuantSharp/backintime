@@ -96,8 +96,8 @@ class StrategyOrderInfo(OrderInfo):
 
 @dataclass
 class StrategyOrders:
-    take_profit: t.Optional[StrategyOrderInfo] = None 
-    stop_loss: t.Optional[StrategyOrderInfo] = None 
+    take_profit_id: t.Optional[int] = None
+    stop_loss_id: t.Optional[int] = None
 
 
 class LimitOrderInfo(OrderInfo):
@@ -107,11 +107,17 @@ class LimitOrderInfo(OrderInfo):
 
     @property 
     def take_profit(self) -> t.Optional[StrategyOrderInfo]:
-        return self._strategy_orders.take_profit
+        take_profit = self._order.take_profit
+        if take_profit:
+            return StrategyOrderInfo(self._strategy_orders.take_profit_id,
+                                     take_profit)
 
     @property
     def stop_loss(self) -> t.Optional[StrategyOrderInfo]:
-        return self._strategy_orders.stop_loss
+        stop_loss = self._order.stop_loss
+        if stop_loss:
+            return StrategyOrderInfo(self._strategy_orders.stop_loss_id,
+                                     stop_loss)
 
 
 class AbstractBroker(ABC):
