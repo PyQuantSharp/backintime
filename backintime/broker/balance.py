@@ -37,7 +37,7 @@ class Balance:
 
     def hold_fiat(self, amount: float) -> None:
         """
-        Insure there are enough fiat available for trading and
+        Ensure there are enough fiat available for trading and
         and decrease it.
         """
         if amount > self._available_fiat_balance:
@@ -46,7 +46,7 @@ class Balance:
 
     def hold_crypto(self, amount: float) -> None:
         """
-        Insure there are enough crypto available for trading and
+        Ensure there are enough crypto available for trading and
         and decrease it.
         """
         if amount > self._available_crypto_balance:
