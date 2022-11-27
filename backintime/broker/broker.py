@@ -73,7 +73,8 @@ class OrderInfo:
 
     @property 
     def is_unfulfilled(self) -> bool:
-        return self._order.status is OrderStatus.CREATED
+        return self._order.status is OrderStatus.CREATED or \
+               self._order.status is OrderStatus.ACTIVATED
 
     @property 
     def is_canceled(self) -> bool:
