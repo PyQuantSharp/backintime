@@ -1,5 +1,4 @@
 import typing as t
-import functools
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from itertools import count
@@ -78,7 +77,7 @@ class OrderInfo:
 
     @property 
     def is_canceled(self) -> bool:
-        return self._order.status is OrderStatus.CANCELED
+        return self._order.status is OrderStatus.CANCELLED
 
     @property 
     def is_executed(self) -> bool:
@@ -279,38 +278,339 @@ class OrderNotFound(Exception):
         super().__init__(f"Order with `order_id`={order_id} was not found")
 
 
+class OrderSubmissionError(Exception): pass
+
+
+class OrderCancellationError(Exception): pass
+
+
 class Broker(AbstractBroker):
+    def __init__(self, start_money: float): 
+        # TODO: fees, trades history
+        # TODO: add type hints
+        self._balance = Balance(fiat_balance = start_money)
+        self._balance_info = BalanceInfo(self._balance)
+        self._orders = OrdersRepository()
+        # Shared positions for TP/SL orders
+        self._shared_buy_position = 0
+        self._shared_sell_position = 0
+        # Summarised TP/SL orders positions
+        self._aggregated_buy_position = 0
+        self._aggregated_sell_position = 0
+
     def get_balance(self) -> BalanceInfo:
-        pass
+        return self._balance_info
 
     def get_fiat_balance(self) -> float:
-        pass
+        return self._balance.available_fiat_balance
     
     def get_crypto_balance(self) -> float:
-        pass
+        return self._balance.available_crypto_balance
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
-        pass
+        """Submit order for execution."""
+        if isinstance(order_factory, MarketOrderFactory):
+            return self.submit_market_order(order_factory)
+        elif isinstance(order_factory, LimitOrderFactory):
+            return self.submit_limit_order(order_factory)
+        elif isinstance(order_factory, TakeProfitFactory):
+            return self.submit_take_profit_order(order_factory)
+        elif isinstance(order_factory, StopLossFactory):
+            return self.submit_stop_loss_order(order_factory)
+        else:
+            raise OrderSubmissionError(
+                        f"Can't create order from {order_factory}: "
+                        f"unexpected factory type.")
 
     def submit_market_order(
                 self, 
                 order_factory: MarketOrderFactory) -> OrderInfo:
-        pass
+        """Submit market order."""
+        order = order_factory.create()
+        self._hold_funds(order)
+        order_id = self._orders.add_market_order(order)
+        return OrderInfo(order_id, order)
 
     def submit_limit_order(
                 self, 
                 order_factory: LimitOrderFactory) -> LimitOrderInfo:
-        pass
+        """Submit limit order."""
+        order = order_factory.create()
+        self._hold_funds(order)
+        order_id = self._orders.add_limit_order(order)
+        strategy_orders = self._orders.get_linked_orders(order_id)
+        return LimitOrderInfo(order_id, order, strategy_orders)
 
     def submit_take_profit_order(
                 self, 
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
-        pass
+        """Submit Take Profit order."""
+        order = order_factory.create()
+        self._hold_position(order)
+        order_id = self._orders.add_take_profit_order(order)
+        return StrategyOrderInfo(order_id, order)
 
     def submit_stop_loss_order(
                 self, 
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
-        pass
+        """Submit Stop Loss order."""
+        order = order_factory.create()
+        self._hold_position(order)
+        order_id = self._orders.add_stop_loss_order(order)
+        return StrategyOrderInfo(order_id, order)
+
+    def _submit_linked_take_profit(self, 
+                                   take_profit_factory: TakeProfitFactory,
+                                   limit_order_id: int) -> None:
+        """Submit new linked TP from limit order."""
+        order = take_profit_factory.create()
+        self._hold_position(order)
+        self._orders.add_linked_take_profit_order(order, limit_order_id)
+
+    def _submit_linked_stop_loss(self, 
+                                 stop_loss_factory: StopLossFactory, 
+                                 limit_order_id: int) -> None:
+        """Submit new linked SL from limit order."""
+        order = stop_loss_factory.create()
+        self._hold_position(order)
+        self._orders.add_linked_stop_loss_order(order, limit_order_id)
 
     def cancel_order(self, order_id: int) -> None:
-        pass
+        """Cancel order by id."""
+        order = self._orders.get_order(order_id)
+        if not order:
+            raise OrderNotFound(order_id)
+
+        if not order.status is OrderStatus.CREATED and \
+                not order.status is OrderStatus.ACTIVATED:
+            raise OrderCancellationError(
+                            f"Order can't be cancelled, because "
+                            f"order status is {order.status}")
+
+        if isinstance(order, MarketOrder):
+            self._release_funds(order)
+            self._orders.remove_market_order(order_id)
+        elif isinstance(order, LimitOrder):
+            self._release_funds(order)
+            self._orders.remove_limit_order(order_id)
+        elif isinstance(order, TakeProfitOrder):
+            self._release_position(order)
+            self._orders.remove_take_profit_order(order_id)
+        elif isinstance(order, StopLossOrder):
+            self._release_position(order)
+            self._orders.remove_stop_loss_order(order_id)
+        order.status = OrderStatus.CANCELLED
+
+    def _hold_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
+        # Insure there are enough funds available
+        # and decrease available value
+        if order.side == OrderSide.BUY:
+            total_amount = self._get_total_amount(order)
+            self._balance.hold_fiat(total_amount)
+        elif order.side == OrderSide.SELL:
+            self._balance.hold_crypto(order.amount)
+
+    def _hold_position(self, order: StrategyOrder) -> None:
+        # For TP/SL orders only. Insure there are enough funds 
+        # on balance in total and decrease available value
+        if order.side == OrderSide.BUY:
+            # TODO: review usage of totol_amount
+            total_amount = self._get_total_amount(order)
+            if total_amount <= self._balance.available_fiat_balance:
+                # If total amount fits, hold funds and 
+                # make it shared for other TP/SL
+                self._balance.hold_fiat(total_amount)
+                self._shared_buy_position += total_amount
+            else:
+                # Acquire only insufficient
+                hold_amount = total_amount - self._shared_buy_position
+                self._balance.hold_fiat(hold_amount)
+            self._aggregated_buy_position += total_amount
+
+        elif order.side == OrderSide.SELL:
+            if order.amount <= self._balance.available_crypto_balance:
+                # If total amount fits, hold funds and 
+                # make it shared for other TP/SL 
+                self._balance.hold_crypto(order.amount)
+                self._shared_sell_position += order.amount 
+            else:
+                # Acquire only insufficient
+                hold_amount = order.amount - self._shared_sell_position
+                self._balance.hold_crypto(hold_amount)
+            self._aggregated_sell_position += order.amount
+
+    def _release_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
+        if order.side is OrderSide.BUY:
+            total_amount = self._get_total_amount(order)
+            self._balance.release_fiat(total_amount)
+        elif order.side is OrderSide.SELL:
+            self._balance.release_crypto(order.amount)
+
+    def _release_position(self, order: StrategyOrder) -> None:
+        if order.side is OrderSide.BUY:
+            # Decrease value in aggregated position for BUY
+            total_amount = self._get_total_amount(order)
+            self._aggregated_buy_position -= total_amount 
+            aggregated_position = self._aggregated_buy_position
+            # Decrease shared BUY position if needed
+            if aggregated_position < self._shared_buy_position:
+                self._shared_buy_position = aggregated_position
+            # Release difference between balance and aggr. position
+            fiat_balance = self._balance.fiat_balance
+            fiat_available= self._balance.available_fiat_balance
+            aggregated_buy = aggregated_position
+
+            to_release = fiat_balance - aggregated_buy - fiat_available
+            if to_release:
+                self._balance.release_fiat(to_release)
+
+        elif order.side is OrderSide.SELL:
+            # Decrease value in aggregated postion for SELL
+            self._aggregated_sell_position -= order.amount
+            aggregated_position = self._aggregated_sell_position
+            # Decrease shared SELL position if needed
+            if aggregated_position < self._shared_sell_position:
+                self._shared_sell_position = aggregated_position
+            # Release difference between balance and aggr. position
+            crypto_balance = self._balance.crypto_balance
+            crypto_available = self._balance.available_crypto_balance
+            aggregated_sell = aggregated_position
+
+            to_release = crypto_balance - aggregated_sell - crypto_available
+            if to_release:
+                self._balance.release_crypto(to_release)
+
+    def _get_total_amount(self, order) -> float:
+        return order.amount * order.order_price if order.order_price \
+                else order.amount
+
+    def _cancel_strategy_orders(self) -> None:
+        """
+        Cancel all strategy orders. 
+        Must be invoked on position modification.
+        """
+        for order_id, order in self._orders.get_strategy_orders():
+            self._release_position(order)
+            self._orders.remove_strategy_order(order_id)
+            order.status = OrderStatus.CANCELLED
+
+    def _update(self, candle) -> None:
+        """Review whether orders can be executed."""
+        # Execute all market orders
+        self._execute_market_orders()
+        # Review whether limit orders 
+        for match_predicate in _get_match_predicates(candle):
+            for order_id, order in self._orders.get_limit_orders():
+                # Review strategy orders
+                if isinstance(order, StrategyOrder):
+                    if order.status is OrderStatus.CREATED:
+                        if match_predicate(order.target_price):
+                            self._activate_strategy_order(order_id, order)
+                    elif order.status is OrderStatus.ACTIVATED:
+                        if match_predicate(order.order_price):
+                            self._execute_strategy_limit_order(order_id, order)
+                # Review limit orders
+                elif isinstance(order, LimitOrder):
+                    if match_predicate(order.order_price):
+                        self._execute_limit_order(order_id, order)
+
+    def _execute_market_orders(self, market_price: float) -> None:
+        for order_id, order in self._orders.get_market_orders():
+            if isinstance(order, MarketOrder):
+                self._execute_market_order(order, market_price)
+            elif isinstance(order, StrategyOrder):
+                self._execute_strategy_market_order(order_id, order, market_price)
+        self._orders.remove_market_orders()
+
+    def _execute_market_order(self, 
+                              order: MarketOrder,
+                              market_price: float) -> None:
+        if order.side is OrderSide.BUY:
+            self._balance.withdraw_fiat(order.amount) # Total amount?
+            self._balance.deposit_crypto(order.amount / market_price)
+
+        elif order.side is OrderSide.SELL:
+            self._balance.withdraw_crypto(order.amount)
+            self._balance.deposit_fiat(order.amount * market_price)
+
+        order.status = OrderStatus.EXECUTED
+        order.fill_price = market_price
+        # Cancel all TP/SL orders since position was modified
+        self._cancel_strategy_orders()
+
+    def _execute_limit_order(self, 
+                             order_id: int, 
+                             order: LimitOrder) -> None:
+        if order.side is OrderSide.BUY:
+            total_amount = self._get_total_amount(order)
+            self._balance.withdraw_fiat(total_amount)
+            self._balance.deposit_crypto(order.amount)
+
+        elif order.side is OrderSide.SELL:
+            self._balance.withdraw_crypto(order.amount)
+            self._balance.deposit_fiat(order.amount * order.order_price)
+
+        order.status = OrderStatus.EXECUTED
+        order.fill_price = order.order_price
+        self._orders.remove_limit_order(order_id)
+        # Cancel all TP/SL orders since position was modified
+        self._cancel_strategy_orders()
+        # Submit TP/SL orders, if any
+        # Invert order side 
+        order_side = OrderSide.BUY if order.side is OrderSide.SELL \
+                        else OrderSide.SELL 
+        if order.take_profit_factory:
+            order.take_profit_factory.side = order_side
+            self._submit_linked_take_profit(order.take_profit_factory, order_id)            
+        if order.stop_loss_factory:
+            order.stop_loss_factory.side = order_side 
+            self._submit_linked_stop_loss(order.stop_loss_factory, order_id)
+
+    def _activate_strategy_order(self, 
+                                 order_id: int, 
+                                 order: StrategyOrder) -> None:
+        if order.order_price:
+            self._orders.add_order_to_limit_orders(order_id)
+        else:
+            self._orders.add_order_to_market_orders(order_id)
+        order.status = OrderStatus.ACTIVATED
+
+    def _execute_strategy_market_order(self, 
+                                       order_id: int, 
+                                       order: StrategyOrder, 
+                                       market_price: float) -> None:
+        if order.side is OrderSide.BUY:
+            self._balance.withdraw_fiat(order.amount) # Total amount?
+            self._balance.deposit_crypto(order.amount / market_price)
+            self._aggregated_buy_position -= total_amount
+
+        elif order.side is OrderSide.SELL:
+            self._balance.withdraw_crypto(order.amount)
+            self._balance.deposit_fiat(order.amount * market_price)
+            self._aggregated_sell_position -= order.amount 
+
+        order.status = OrderStatus.EXECUTED
+        order.fill_price = market_price
+        self._orders.remove_strategy_order(order_id)
+        # Cancel all other TP/SL orders since position was modified
+        self._cancel_strategy_orders()
+
+    def _execute_strategy_limit_order(self, 
+                                      order_id: int, 
+                                      order: LimitOrder) -> None:
+        if order.side is OrderSide.BUY:
+            total_amount = self._get_total_amount(order)
+            self._balance.withdraw_fiat(total_amount)
+            self._balance.deposit_crypto(order.amount)
+            self._aggregated_buy_position -= total_amount
+
+        elif order.side is OrderSide.SELL:
+            self._balance.withdraw_crypto(order.amount)
+            self._balance.deposit_fiat(order.amount * order.order_price)
+            self._aggregated_sell_position -= order.amount 
+
+        order.status = OrderStatus.EXECUTED
+        order.fill_price = order.order_price
+        self._orders.remove_strategy_order(order_id)
+        # Cancel all other TP/SL orders since position was modified
+        self._cancel_strategy_orders()
