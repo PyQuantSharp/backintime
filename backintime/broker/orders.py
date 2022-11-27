@@ -26,7 +26,7 @@ class OrderSide(Enum):
 
 class OrderStatus(Enum):
     CREATED = "CREATED"
-    CANCELED = "CANCELED"
+    CANCELLED = "CANCELLED"
     EXECUTED = "EXECUTED"
     # Only for stop loss orders
     ACTIVATED = "ACTIVATED"
