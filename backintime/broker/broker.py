@@ -300,7 +300,33 @@ class OrderCancellationError(Exception): pass
 class Broker(AbstractBroker):
     """
     Broker provides orders management in a simulated
-    market environment.
+    market environment. The broker executes/activates orders
+    whose conditions fits the market every time the `_update`
+    method is called.
+
+    Order Execution Policy:
+
+    - Market orders: 
+        All market orders will be executed when 
+        the `_update` method is called. 
+        The price of execution is the candle's OPEN price.
+
+    - Limit orders: 
+        Each of the conditions from the following list 
+        will in turn be applied to the `order_price` of each order:
+            1) price == candle.OPEN
+            2) price >= candle.LOW and price <= candle.HIGH
+            3) price == candle.CLOSE
+        The order will be executed if the condition is true. 
+        The price of execution is the order's `order_price`.
+
+    - Take Profit/Stop Loss orders: 
+        The activation conditions are essentially the same
+        as for limit orders, but the conditions from the list 
+        are applied to order's `target_price`. 
+        When a TP/SL order is triggered, it will be treated
+        as a market or limit order, depending on whether 
+        `order_price` is set for the order. 
     """
     def __init__(self, start_money: float): 
         # TODO: fees, trades history
