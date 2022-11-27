@@ -8,11 +8,16 @@ from .orders import (
     OrderSide,
     Order, 
     OrderStatus, 
-    OrderFactory, 
+    OrderFactory,
+    StrategyOrder,
     MarketOrder, 
     LimitOrder, 
     StopLossOrder,
-    TakeProfitOrder
+    TakeProfitOrder,
+    MarketOrderFactory,
+    LimitOrderFactory,
+    StopLossFactory,
+    TakeProfitFactory
 )
 
 
@@ -127,6 +132,30 @@ class AbstractBroker(ABC):
         pass
 
     @abstractmethod
+    def submit_market_order(
+                self, 
+                order_factory: MarketOrderFactory) -> OrderInfo:
+        pass
+
+    @abstractmethod
+    def submit_limit_order(
+                self, 
+                order_factory: LimitOrderFactory) -> LimitOrderInfo:
+        pass
+
+    @abstractmethod
+    def submit_take_profit_order(
+                self, 
+                order_factory: TakeProfitFactory) -> StrategyOrderInfo:
+        pass
+
+    @abstractmethod
+    def submit_stop_loss_order(
+                self, 
+                order_factory: StopLossFactory) -> StrategyOrderInfo:
+        pass
+
+    @abstractmethod
     def cancel_order(self, order_id: int) -> None:
         pass
 
@@ -140,8 +169,28 @@ class Broker(AbstractBroker):
     
     def get_crypto_balance(self) -> float:
         pass
-    
+
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
+        pass
+
+    def submit_market_order(
+                self, 
+                order_factory: MarketOrderFactory) -> OrderInfo:
+        pass
+
+    def submit_limit_order(
+                self, 
+                order_factory: LimitOrderFactory) -> LimitOrderInfo:
+        pass
+
+    def submit_take_profit_order(
+                self, 
+                order_factory: TakeProfitFactory) -> StrategyOrderInfo:
+        pass
+
+    def submit_stop_loss_order(
+                self, 
+                order_factory: StopLossFactory) -> StrategyOrderInfo:
         pass
 
     def cancel_order(self, order_id: int) -> None:
