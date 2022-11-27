@@ -30,18 +30,22 @@ class BalanceInfo:
 
     @property
     def available_fiat_balance(self) -> float:
+        """Get fiat available for trading."""
         return self._data.available_fiat_balance
 
     @property
     def available_crypto_balance(self) -> float:
+        """Get crypto available for trading."""
         return self._data.available_crypto_balance
-    
+
     @property
     def fiat_balance(self) -> float:
+        """Get fiat balance."""
         return self._data.fiat_balance
 
     @property
     def crypto_balance(self) -> float:
+        """Get crypto balance."""
         return self._data.crypto_balance
 
 
@@ -123,46 +127,55 @@ class LimitOrderInfo(OrderInfo):
 class AbstractBroker(ABC):
     @abstractmethod
     def get_balance(self) -> BalanceInfo:
+        """Get balance info."""
         pass
-    
+
     @abstractmethod
     def get_fiat_balance(self) -> float:
+        """Get fiat available for trading."""
         pass
     
     @abstractmethod
     def get_crypto_balance(self) -> float:
+        """Get crypto available for trading."""
         pass
 
     @abstractmethod
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
+        """Submit order for execution."""
         pass
 
     @abstractmethod
     def submit_market_order(
                 self, 
                 order_factory: MarketOrderFactory) -> OrderInfo:
+        """Submit market order."""
         pass
 
     @abstractmethod
     def submit_limit_order(
                 self, 
                 order_factory: LimitOrderFactory) -> LimitOrderInfo:
+        """Submit limit order."""
         pass
 
     @abstractmethod
     def submit_take_profit_order(
                 self, 
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
+        """Submit Take Profit order."""
         pass
 
     @abstractmethod
     def submit_stop_loss_order(
                 self, 
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
+        """Submit Stop Loss order."""
         pass
 
     @abstractmethod
     def cancel_order(self, order_id: int) -> None:
+        """Cancel order by id."""
         pass
 
 
@@ -285,9 +298,12 @@ class OrderCancellationError(Exception): pass
 
 
 class Broker(AbstractBroker):
+    """
+    Broker provides orders management in a simulated
+    market environment.
+    """
     def __init__(self, start_money: float): 
         # TODO: fees, trades history
-        # TODO: add type hints
         self._balance = Balance(fiat_balance = start_money)
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
@@ -299,12 +315,15 @@ class Broker(AbstractBroker):
         self._aggregated_sell_position = 0
 
     def get_balance(self) -> BalanceInfo:
+        """Get balance info."""
         return self._balance_info
 
     def get_fiat_balance(self) -> float:
+        """Get fiat available for trading."""
         return self._balance.available_fiat_balance
-    
+
     def get_crypto_balance(self) -> float:
+        """Get crypto available for trading."""
         return self._balance.available_crypto_balance
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
@@ -402,8 +421,10 @@ class Broker(AbstractBroker):
         order.status = OrderStatus.CANCELLED
 
     def _hold_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
-        # Insure there are enough funds available
-        # and decrease available value
+        """
+        Ensure there are enough funds available 
+        and decrease available value.
+        """
         if order.side == OrderSide.BUY:
             total_amount = self._get_total_amount(order)
             self._balance.hold_fiat(total_amount)
@@ -411,10 +432,14 @@ class Broker(AbstractBroker):
             self._balance.hold_crypto(order.amount)
 
     def _hold_position(self, order: StrategyOrder) -> None:
-        # For TP/SL orders only. Insure there are enough funds 
-        # on balance in total and decrease available value
+        """
+        Ensure there are enough funds available,  
+        decrease available value and make this amount shared -  
+        i.e., available to other TP/SLs.
+        Should new TP/SL be posted, it can then acquire funds
+        from the shared position without modifying the balance.
+        """
         if order.side == OrderSide.BUY:
-            # TODO: review usage of totol_amount
             total_amount = self._get_total_amount(order)
             if total_amount <= self._balance.available_fiat_balance:
                 # If total amount fits, hold funds and 
@@ -440,6 +465,7 @@ class Broker(AbstractBroker):
             self._aggregated_sell_position += order.amount
 
     def _release_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
+        """Increase funds available for trading."""
         if order.side is OrderSide.BUY:
             total_amount = self._get_total_amount(order)
             self._balance.release_fiat(total_amount)
@@ -480,7 +506,11 @@ class Broker(AbstractBroker):
             if to_release:
                 self._balance.release_crypto(to_release)
 
-    def _get_total_amount(self, order) -> float:
+    def _get_total_amount(self, order: Order) -> float:
+        """
+        Get the total price of order (if order has price)
+        or amount in the order (if order's price is market).
+        """
         return order.amount * order.order_price if order.order_price \
                 else order.amount
 
