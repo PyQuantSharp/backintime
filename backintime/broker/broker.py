@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from itertools import count
 from .balance import Balance
+from .fees import FeesEstimator
 from .orders import (
     OrderSide,
     Order, 
@@ -328,8 +329,9 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: float): 
-        # TODO: fees, trades history
+    def __init__(self, start_money: float, fees: FeesEstimator): 
+        # TODO: trades history
+        self._fees = fees
         self._balance = Balance(fiat_balance = start_money)
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
@@ -343,6 +345,16 @@ class Broker(AbstractBroker):
     def get_balance(self) -> BalanceInfo:
         """Get balance info."""
         return self._balance_info
+
+    def get_max_fiat_for_taker(self) -> float:
+        """Get max available fiat for a 'taker' order."""
+        available_fiat = self._balance.available_fiat_balance
+        return available_fiat / (1 + self._fees.taker_fee)
+
+    def get_max_fiat_for_maker(self) -> float:
+        """Get max available fiat for a 'maker' order"""
+        available_fiat = self._balance.available_fiat_balance
+        return available_fiat / (1 + self._fees.maker_fee)
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""
@@ -444,8 +456,8 @@ class Broker(AbstractBroker):
         and decrease available value.
         """
         if order.side == OrderSide.BUY:
-            total_amount = self._get_total_amount(order)
-            self._balance.hold_fiat(total_amount)
+            total_price = self._get_total_price(order)
+            self._balance.hold_fiat(total_price)
         elif order.side == OrderSide.SELL:
             self._balance.hold_crypto(order.amount)
 
@@ -458,17 +470,17 @@ class Broker(AbstractBroker):
         from the shared position without modifying the balance.
         """
         if order.side == OrderSide.BUY:
-            total_amount = self._get_total_amount(order)
+            total_price = self._get_total_price(order)
             if total_amount <= self._balance.available_fiat_balance:
                 # If total amount fits, hold funds and 
                 # make it shared for other TP/SL
-                self._balance.hold_fiat(total_amount)
-                self._shared_buy_position += total_amount
+                self._balance.hold_fiat(total_price)
+                self._shared_buy_position += total_price
             else:
                 # Acquire only insufficient
-                hold_amount = total_amount - self._shared_buy_position
+                hold_amount = total_price - self._shared_buy_position
                 self._balance.hold_fiat(hold_amount)
-            self._aggregated_buy_position += total_amount
+            self._aggregated_buy_position += total_price
 
         elif order.side == OrderSide.SELL:
             if order.amount <= self._balance.available_crypto_balance:
@@ -485,16 +497,16 @@ class Broker(AbstractBroker):
     def _release_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
         """Increase funds available for trading."""
         if order.side is OrderSide.BUY:
-            total_amount = self._get_total_amount(order)
-            self._balance.release_fiat(total_amount)
+            total_price = self._get_total_price(order)
+            self._balance.release_fiat(total_price)
         elif order.side is OrderSide.SELL:
             self._balance.release_crypto(order.amount)
 
     def _release_position(self, order: StrategyOrder) -> None:
         if order.side is OrderSide.BUY:
             # Decrease value in aggregated position for BUY
-            total_amount = self._get_total_amount(order)
-            self._aggregated_buy_position -= total_amount 
+            total_price = self._get_total_price(order)
+            self._aggregated_buy_position -= total_price 
             aggregated_position = self._aggregated_buy_position
             # Decrease shared BUY position if needed
             if aggregated_position < self._shared_buy_position:
@@ -524,13 +536,39 @@ class Broker(AbstractBroker):
             if to_release:
                 self._balance.release_crypto(to_release)
 
-    def _get_total_amount(self, order: Order) -> float:
+    def _get_total_price(self, order: Order) -> float:
         """
-        Get the total price of order (if order has price)
-        or amount in the order (if order's price is market).
+        Estimate total amount of funds required to execute the order
+        including execution fee. For BUY orders only.
         """
-        return order.amount * order.order_price if order.order_price \
-                else order.amount
+        if order.order_price:   # Limit
+            return self._get_maker_price(order)
+        else:                   # Market 
+            return self._get_taker_price(order)
+
+    def _get_maker_price(self, order) -> float:
+        """
+        Estimate total amount of funds required to execute the order
+        including maker fee. For BUY orders only.
+        """
+        total_amount = order.amount * order.order_price
+        return self._fees.estimate_maker_price(total_amount)
+
+    def _get_maker_gain(self, order) -> float:
+        """Estimate gain minus maker fee. For SELL orders only."""
+        total_amount = order.amount * order.order_price
+        return self._fees.estimate_maker_gain(total_amount)
+
+    def _get_taker_price(self, order) -> float:
+        """
+        Estimate total amount of funds required to execute the order
+        including taker fee. For BUY orders only.
+        """
+        return self._fees.estimate_taker_price(order.amount)
+
+    def _get_taker_gain(self, order, market_price: float) -> float:
+        """Estimate gain minus taker fee. For SELL orders only."""
+        return self._fees.estimate_taker_gain(order.amount * market_price)
 
     def _cancel_strategy_orders(self) -> None:
         """
@@ -574,12 +612,14 @@ class Broker(AbstractBroker):
                               order: MarketOrder,
                               market_price: float) -> None:
         if order.side is OrderSide.BUY:
-            self._balance.withdraw_fiat(order.amount) # Total amount?
+            price = self._get_taker_price(order)
+            self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount / market_price)
 
         elif order.side is OrderSide.SELL:
+            gain = self._get_taker_gain(order, market_price)
             self._balance.withdraw_crypto(order.amount)
-            self._balance.deposit_fiat(order.amount * market_price)
+            self._balance.deposit_fiat(gain)
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
@@ -590,13 +630,14 @@ class Broker(AbstractBroker):
                              order_id: int, 
                              order: LimitOrder) -> None:
         if order.side is OrderSide.BUY:
-            total_amount = self._get_total_amount(order)
-            self._balance.withdraw_fiat(total_amount)
+            price = self._get_maker_price(order)
+            self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount)
 
         elif order.side is OrderSide.SELL:
+            gain = self._get_maker_gain(order)
             self._balance.withdraw_crypto(order.amount)
-            self._balance.deposit_fiat(order.amount * order.order_price)
+            self._balance.deposit_fiat(gain)
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = order.order_price
@@ -628,13 +669,15 @@ class Broker(AbstractBroker):
                                        order: StrategyOrder, 
                                        market_price: float) -> None:
         if order.side is OrderSide.BUY:
-            self._balance.withdraw_fiat(order.amount) # Total amount?
+            price = self._get_taker_price(order)
+            self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount / market_price)
-            self._aggregated_buy_position -= total_amount
+            self._aggregated_buy_position -= price
 
         elif order.side is OrderSide.SELL:
+            gain = self._get_taker_gain(order, market_price)
             self._balance.withdraw_crypto(order.amount)
-            self._balance.deposit_fiat(order.amount * market_price)
+            self._balance.deposit_fiat(gain)
             self._aggregated_sell_position -= order.amount 
 
         order.status = OrderStatus.EXECUTED
@@ -647,14 +690,15 @@ class Broker(AbstractBroker):
                                       order_id: int, 
                                       order: StrategyOrder) -> None:
         if order.side is OrderSide.BUY:
-            total_amount = self._get_total_amount(order)
-            self._balance.withdraw_fiat(total_amount)
+            price = self._get_maker_price(order)
+            self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount)
-            self._aggregated_buy_position -= total_amount
+            self._aggregated_buy_position -= price
 
         elif order.side is OrderSide.SELL:
+            gain = self._get_maker_gain(order)
             self._balance.withdraw_crypto(order.amount)
-            self._balance.deposit_fiat(order.amount * order.order_price)
+            self._balance.deposit_fiat(gain)
             self._aggregated_sell_position -= order.amount 
 
         order.status = OrderStatus.EXECUTED
