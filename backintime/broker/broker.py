@@ -663,7 +663,7 @@ class Broker(AbstractBroker):
 
     def _execute_strategy_limit_order(self, 
                                       order_id: int, 
-                                      order: LimitOrder) -> None:
+                                      order: StrategyOrder) -> None:
         if order.side is OrderSide.BUY:
             total_amount = self._get_total_amount(order)
             self._balance.withdraw_fiat(total_amount)
