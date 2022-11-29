@@ -131,16 +131,6 @@ class AbstractBroker(ABC):
         pass
 
     @abstractmethod
-    def get_fiat_balance(self) -> float:
-        """Get fiat available for trading."""
-        pass
-    
-    @abstractmethod
-    def get_crypto_balance(self) -> float:
-        """Get crypto available for trading."""
-        pass
-
-    @abstractmethod
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""
         pass
