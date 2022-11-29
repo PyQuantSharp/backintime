@@ -8,7 +8,7 @@ All fields are public. It is up to a broker implementation to set
       so the summarised value of opened TP/SL orders can be greater
       than the opened position. 
       In this case, only the first TP/SL order whose conditions
-      are satisafied will be executed. Others must be cancelled.
+      are satisfied will be executed. Others must be cancelled.
 
     - When TP/SL order is activated (target_price meets market), 
       it must be treated as Market/Limit order,
