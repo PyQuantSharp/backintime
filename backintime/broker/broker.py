@@ -354,14 +354,6 @@ class Broker(AbstractBroker):
         """Get balance info."""
         return self._balance_info
 
-    def get_fiat_balance(self) -> float:
-        """Get fiat available for trading."""
-        return self._balance.available_fiat_balance
-
-    def get_crypto_balance(self) -> float:
-        """Get crypto available for trading."""
-        return self._balance.available_crypto_balance
-
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""
         if isinstance(order_factory, MarketOrderFactory):
