@@ -17,6 +17,7 @@ All fields are public. It is up to a broker implementation to set
 import typing as t
 from abc import ABC, abstractmethod
 from enum import Enum
+from decimal import Decimal   # https://docs.python.org/3/library/decimal.html
 
 
 class OrderSide(Enum):
@@ -36,21 +37,21 @@ class Order:
     """ Base class for all orders """
     def __init__(self, 
                  side: OrderSide, 
-                 amount: float, 
-                 order_price: t.Optional[float]=None):
+                 amount: Decimal, 
+                 order_price: t.Optional[Decimal]=None):
         self.side = side
         self.amount = amount
         self.order_price = order_price
-        self.fill_price: t.Optional[float] = None
+        self.fill_price: t.Optional[Decimal] = None
         self.status = OrderStatus.CREATED
 
 # Strategy orders have trigger price
 class StrategyOrder(Order):
     def __init__(self,
                  side: OrderSide, 
-                 amount: float, 
-                 trigger_price: float,
-                 order_price: t.Optional[float]=None):
+                 amount: Decimal, 
+                 trigger_price: Decimal,
+                 order_price: t.Optional[Decimal]=None):
         self.trigger_price = trigger_price
         super().__init__(side, amount, order_price)
 
@@ -69,9 +70,9 @@ class OrderFactory(ABC):
 
 class TakeProfitFactory(OrderFactory):
     def __init__(self, 
-                 amount: float, 
-                 trigger_price: float, 
-                 order_price: t.Optional[float]=None):
+                 amount: Decimal, 
+                 trigger_price: Decimal, 
+                 order_price: t.Optional[Decimal]=None):
         self.amount = amount
         self.trigger_price = trigger_price
         self.order_price = order_price
@@ -84,9 +85,9 @@ class TakeProfitFactory(OrderFactory):
 
 class StopLossFactory(OrderFactory):
     def __init__(self, 
-                 amount: float, 
-                 trigger_price: float, 
-                 order_price: t.Optional[float]=None):
+                 amount: Decimal, 
+                 trigger_price: Decimal, 
+                 order_price: t.Optional[Decimal]=None):
         self.amount = amount
         self.trigger_price = trigger_price
         self.order_price = order_price
@@ -98,15 +99,15 @@ class StopLossFactory(OrderFactory):
 
 
 class MarketOrder(Order):
-    def __init__(self, side: OrderSide, amount: float):
+    def __init__(self, side: OrderSide, amount: Decimal):
         super().__init__(side, amount)
 
 # Limit orders have optional TP/SL
 class LimitOrder(Order):
     def __init__(self, 
                  side: OrderSide,
-                 amount: float,
-                 order_price: float,
+                 amount: Decimal,
+                 order_price: Decimal,
                  take_profit_factory: t.Optional[TakeProfitFactory] = None,
                  stop_loss_factory: t.Optional[StopLossFactory] = None):
         # TODO: consider collections instead of single item
@@ -118,7 +119,7 @@ class LimitOrder(Order):
 
 
 class MarketOrderFactory(OrderFactory):
-    def __init__(self, side: OrderStatus, amount: float):
+    def __init__(self, side: OrderStatus, amount: Decimal):
         self.side = side
         self.amount = amount
 
@@ -129,8 +130,8 @@ class MarketOrderFactory(OrderFactory):
 class LimitOrderFactory(OrderFactory):
     def __init__(self, 
                  side: OrderSide,
-                 amount: float, 
-                 order_price: float, 
+                 amount: Decimal, 
+                 order_price: Decimal, 
                  take_profit_factory: t.Optional[TakeProfitFactory] = None,
                  stop_loss_factory: t.Optional[StopLossFactory] = None):
         self.side = side

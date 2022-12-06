@@ -2,6 +2,7 @@ import typing as t
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from itertools import count
+from decimal import Decimal    # https://docs.python.org/3/library/decimal.html
 from .balance import Balance
 from .fees import FeesEstimator
 from .orders import (
@@ -30,22 +31,22 @@ class BalanceInfo:
         self._data = data
 
     @property
-    def available_fiat_balance(self) -> float:
+    def available_fiat_balance(self) -> Decimal:
         """Get fiat available for trading."""
         return self._data.available_fiat_balance
 
     @property
-    def available_crypto_balance(self) -> float:
+    def available_crypto_balance(self) -> Decimal:
         """Get crypto available for trading."""
         return self._data.available_crypto_balance
 
     @property
-    def fiat_balance(self) -> float:
+    def fiat_balance(self) -> Decimal:
         """Get fiat balance."""
         return self._data.fiat_balance
 
     @property
-    def crypto_balance(self) -> float:
+    def crypto_balance(self) -> Decimal:
         """Get crypto balance."""
         return self._data.crypto_balance
 
@@ -64,11 +65,11 @@ class OrderInfo:
         return self._order_id
 
     @property 
-    def amount(self) -> float:
+    def amount(self) -> Decimal:
         return self._order.amount
 
     @property 
-    def order_price(self) -> t.Optional[float]:
+    def order_price(self) -> t.Optional[Decimal]:
         return self._order.order_price
 
     @property 
@@ -91,7 +92,7 @@ class OrderInfo:
 
 class StrategyOrderInfo(OrderInfo):
     @property
-    def trigger_price(self) -> float:
+    def trigger_price(self) -> Decimal:
         return self._order.trigger_price
 
     @property
@@ -290,7 +291,7 @@ class OrderCancellationError(Exception): pass
 
 MatchPredicates = t.TypeVar(
                 "MatchPredicates", 
-                bound=t.Generator[t.Callable[[float], bool], None, None])
+                bound=t.Generator[t.Callable[[Decimal], bool], None, None])
 
 def _get_match_predicates(candle) -> MatchPredicates:
     yield lambda price: price == candle.OPEN
@@ -329,29 +330,29 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: float, fees: FeesEstimator): 
+    def __init__(self, start_money: t.Union[str, int], fees: FeesEstimator): 
         # TODO: trades history
         self._fees = fees
-        self._balance = Balance(fiat_balance = start_money)
+        self._balance = Balance(fiat_balance = Decimal(start_money))
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
         # Shared positions for TP/SL orders
-        self._shared_buy_position = 0
-        self._shared_sell_position = 0
+        self._shared_buy_position = Decimal(0)
+        self._shared_sell_position = Decimal(0)
         # Summarised TP/SL orders positions
-        self._aggregated_buy_position = 0
-        self._aggregated_sell_position = 0
+        self._aggregated_buy_position = Decimal(0)
+        self._aggregated_sell_position = Decimal(0)
 
     def get_balance(self) -> BalanceInfo:
         """Get balance info."""
         return self._balance_info
 
-    def get_max_fiat_for_taker(self) -> float:
+    def get_max_fiat_for_taker(self) -> Decimal:
         """Get max available fiat for a 'taker' order."""
         available_fiat = self._balance.available_fiat_balance
         return available_fiat / (1 + self._fees.taker_fee)
 
-    def get_max_fiat_for_maker(self) -> float:
+    def get_max_fiat_for_maker(self) -> Decimal:
         """Get max available fiat for a 'maker' order"""
         available_fiat = self._balance.available_fiat_balance
         return available_fiat / (1 + self._fees.maker_fee)
@@ -536,7 +537,7 @@ class Broker(AbstractBroker):
             if to_release:
                 self._balance.release_crypto(to_release)
 
-    def _get_total_price(self, order: Order) -> float:
+    def _get_total_price(self, order: Order) -> Decimal:
         """
         Estimate total amount of funds required to execute the order
         including execution fee. For BUY orders only.
@@ -546,7 +547,7 @@ class Broker(AbstractBroker):
         else:                   # Market 
             return self._get_taker_price(order)
 
-    def _get_maker_price(self, order) -> float:
+    def _get_maker_price(self, order) -> Decimal:
         """
         Estimate total amount of funds required to execute the order
         including maker fee. For BUY orders only.
@@ -554,19 +555,19 @@ class Broker(AbstractBroker):
         total_amount = order.amount * order.order_price
         return self._fees.estimate_maker_price(total_amount)
 
-    def _get_maker_gain(self, order) -> float:
+    def _get_maker_gain(self, order) -> Decimal:
         """Estimate gain minus maker fee. For SELL orders only."""
         total_amount = order.amount * order.order_price
         return self._fees.estimate_maker_gain(total_amount)
 
-    def _get_taker_price(self, order) -> float:
+    def _get_taker_price(self, order) -> Decimal:
         """
         Estimate total amount of funds required to execute the order
         including taker fee. For BUY orders only.
         """
         return self._fees.estimate_taker_price(order.amount)
 
-    def _get_taker_gain(self, order, market_price: float) -> float:
+    def _get_taker_gain(self, order, market_price: Decimal) -> Decimal:
         """Estimate gain minus taker fee. For SELL orders only."""
         return self._fees.estimate_taker_gain(order.amount * market_price)
 
@@ -600,7 +601,7 @@ class Broker(AbstractBroker):
                     if match_predicate(order.order_price):
                         self._execute_limit_order(order_id, order)
 
-    def _execute_market_orders(self, market_price: float) -> None:
+    def _execute_market_orders(self, market_price: Decimal) -> None:
         for order_id, order in self._orders.get_market_orders():
             if isinstance(order, MarketOrder):
                 self._execute_market_order(order, market_price)
@@ -610,7 +611,7 @@ class Broker(AbstractBroker):
 
     def _execute_market_order(self, 
                               order: MarketOrder,
-                              market_price: float) -> None:
+                              market_price: Decimal) -> None:
         if order.side is OrderSide.BUY:
             price = self._get_taker_price(order)
             self._balance.withdraw_fiat(price)
@@ -667,7 +668,7 @@ class Broker(AbstractBroker):
     def _execute_strategy_market_order(self, 
                                        order_id: int, 
                                        order: StrategyOrder, 
-                                       market_price: float) -> None:
+                                       market_price: Decimal) -> None:
         if order.side is OrderSide.BUY:
             price = self._get_taker_price(order)
             self._balance.withdraw_fiat(price)
