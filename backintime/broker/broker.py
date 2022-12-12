@@ -69,6 +69,10 @@ class OrderInfo:
     def order_type(self) -> OrderType:
         return self._order.order_type
 
+    @property
+    def order_side(self) -> OrderSide:
+        return self._order.side
+
     @property 
     def amount(self) -> Decimal:
         return self._order.amount
