@@ -320,7 +320,7 @@ class Broker(AbstractBroker):
     """
     Broker provides orders management in a simulated
     market environment. The broker executes/activates orders
-    whose conditions fits the market every time the `_update`
+    whose conditions fits the market every time the `update`
     method is called.
 
     Order Execution Policy:
@@ -614,7 +614,7 @@ class Broker(AbstractBroker):
             self._orders.remove_strategy_order(order_id)
             order.status = OrderStatus.CANCELLED
 
-    def _update(self, candle) -> None:
+    def update(self, candle) -> None:
         """Review whether orders can be executed."""
         # Execute all market orders
         self._execute_market_orders()
