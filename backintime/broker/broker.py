@@ -8,6 +8,7 @@ from .fees import FeesEstimator
 from .orders import (
     OrderSide,
     Order, 
+    OrderType,
     OrderStatus, 
     OrderFactory,
     StrategyOrder,
@@ -63,6 +64,10 @@ class OrderInfo:
     @property
     def order_id(self) -> int:
         return self._order_id
+
+    @property
+    def order_type(self) -> OrderType:
+        return self._order.order_type
 
     @property 
     def amount(self) -> Decimal:

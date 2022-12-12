@@ -39,13 +39,27 @@ class OrderStatus(Enum):
         return self.value
 
 
+class OrderType(Enum):
+    MARKET = "MARKET"
+    LIMIT = "LIMIT"
+    STOP_LOSS = "STOP_LOSS"
+    STOP_LOSS_LIMIT = "STOP_LOSS_LIMIT"
+    TAKE_PROFIT = "TAKE_PROFIT"
+    TAKE_PROFIT_LIMIT = "TAKE_PROFIT_LIMIT"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class Order:
     """ Base class for all orders """
     def __init__(self, 
-                 side: OrderSide, 
+                 side: OrderSide,
+                 order_type: OrderType,
                  amount: Decimal, 
                  order_price: t.Optional[Decimal]=None):
         self.side = side
+        self.order_type = order_type
         self.amount = amount
         self.order_price = order_price
         self.fill_price: t.Optional[Decimal] = None
@@ -55,17 +69,36 @@ class Order:
 class StrategyOrder(Order):
     def __init__(self,
                  side: OrderSide, 
+                 order_type: OrderType,
                  amount: Decimal, 
                  trigger_price: Decimal,
                  order_price: t.Optional[Decimal]=None):
         self.trigger_price = trigger_price
-        super().__init__(side, amount, order_price)
+        super().__init__(side, order_type, amount, order_price)
 
 
-class TakeProfitOrder(StrategyOrder): pass
+class TakeProfitOrder(StrategyOrder):
+    def __init__(self, 
+                 side: OrderSide,
+                 amount: Decimal,
+                 trigger_price: Decimal,
+                 order_price: t.Optional[Decimal]=None):
+        order_type = OrderType.TAKE_PROFIT_LIMIT if order_price \
+                        else OrderType.TAKE_PROFIT
+        super().__init__(self, side, order_type
+                         trigger_price, order_price)
 
 
-class StopLossOrder(StrategyOrder): pass
+class StopLossOrder(StrategyOrder):
+    def __init__(self,
+                 side: OrderSide,
+                 amount: Decimal,
+                 trigger_price: Decimal,
+                 order_price: t.Optional[Decimal]=None):
+        order_type = OrderType.STOP_LOSS_LIMIT if order_price \
+                        else OrderType.STOP_LOSS
+        super().__init__(side, order_type, amount, 
+                         trigger_price, order_price)
 
 
 class OrderFactory(ABC):
@@ -106,7 +139,7 @@ class StopLossFactory(OrderFactory):
 
 class MarketOrder(Order):
     def __init__(self, side: OrderSide, amount: Decimal):
-        super().__init__(side, amount)
+        super().__init__(side, OrderType.MARKET, amount)
 
 # Limit orders have optional TP/SL
 class LimitOrder(Order):
@@ -121,7 +154,7 @@ class LimitOrder(Order):
         self.stop_loss_factory = stop_loss_factory
         self.take_profit: t.Optional[TakeProfitOrder] = None 
         self.stop_loss: t.Optional[StopLossOrder] = None
-        super().__init__(side, amount, order_price)
+        super().__init__(side, OrderType.LIMIT, amount, order_price)
 
 
 class MarketOrderFactory(OrderFactory):
