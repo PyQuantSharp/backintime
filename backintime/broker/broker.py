@@ -1,4 +1,5 @@
 import typing as t
+from datetime import datetime
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from itertools import count
@@ -77,17 +78,25 @@ class OrderInfo:
     def amount(self) -> Decimal:
         return self._order.amount
 
+    @property
+    def date_created(self) -> datetime:
+        return self._order.date_created
+
     @property 
     def order_price(self) -> t.Optional[Decimal]:
         return self._order.order_price
 
-    @property
-    def fill_price(self) -> t.Optional[Decimal]:
-        return self._order.fill_price
-
     @property 
     def status(self) -> OrderStatus:
         return self._order.status
+
+    @property
+    def date_updated(self) -> datetime:
+        return self._order.date_updated
+
+    @property
+    def fill_price(self) -> t.Optional[Decimal]:
+        return self._order.fill_price
 
     @property 
     def is_unfulfilled(self) -> bool:
@@ -188,7 +197,7 @@ class OrdersRepository:
     def __init__(self):
         self._market_orders: t.Set[int] = set()  # Market/Strategy ids
         self._limit_orders: t.Set[int] = set()    # Limit/Strategy ids
-        self._strategy_orders: t.Set[int] = set()   # Strategy ids
+        self._strategy_orders: t.Set[int] = set()  # Strategy ids
         self._orders_counter = count()
         self._orders_map: t.Dict[int, Order] = {}
         self._linked_strategy_orders: t.Dict[int, StrategyOrders] = {}
@@ -360,9 +369,12 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: Decimal, fees: FeesEstimator): 
+    def __init__(self, 
+                 start_money: Decimal, 
+                 fees: FeesEstimator,
+                 current_time: datetime): 
         self._fees = fees
-        self._balance = Balance(fiat_balance = start_money)
+        self._balance = Balance(fiat_balance=start_money)
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
         # Shared positions for TP/SL orders
@@ -373,6 +385,8 @@ class Broker(AbstractBroker):
         self._aggregated_sell_position = Decimal(0)
         # Let's just make it as a simple list as for now
         self._trades: t.List[Trade] = []
+        # Close time of the current candle
+        self._current_time = current_time
 
     def iter_trades(self) -> t.Iterator[Trade]:
         """Get trades iterator."""
@@ -422,7 +436,7 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: MarketOrderFactory) -> OrderInfo:
         """Submit market order."""
-        order = order_factory.create()
+        order = order_factory.create(self._current_time)
         self._hold_funds(order)
         order_id = self._orders.add_market_order(order)
         return OrderInfo(order_id, order)
@@ -431,7 +445,7 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: LimitOrderFactory) -> LimitOrderInfo:
         """Submit limit order."""
-        order = order_factory.create()
+        order = order_factory.create(self._current_time)
         self._hold_funds(order)
         order_id = self._orders.add_limit_order(order)
         strategy_orders = self._orders.get_linked_orders(order_id)
@@ -441,7 +455,7 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
         """Submit Take Profit order."""
-        order = order_factory.create()
+        order = order_factory.create(self._current_time)
         self._hold_position(order)
         order_id = self._orders.add_take_profit_order(order)
         return StrategyOrderInfo(order_id, order)
@@ -450,7 +464,7 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
         """Submit Stop Loss order."""
-        order = order_factory.create()
+        order = order_factory.create(self._current_time)
         self._hold_position(order)
         order_id = self._orders.add_stop_loss_order(order)
         return StrategyOrderInfo(order_id, order)
@@ -459,7 +473,7 @@ class Broker(AbstractBroker):
                                    take_profit_factory: TakeProfitFactory,
                                    limit_order_id: int) -> None:
         """Submit new linked TP from limit order."""
-        order = take_profit_factory.create()
+        order = take_profit_factory.create(self._current_time)
         self._hold_position(order)
         self._orders.add_linked_take_profit_order(order, limit_order_id)
 
@@ -467,7 +481,7 @@ class Broker(AbstractBroker):
                                  stop_loss_factory: StopLossFactory, 
                                  limit_order_id: int) -> None:
         """Submit new linked SL from limit order."""
-        order = stop_loss_factory.create()
+        order = stop_loss_factory.create(self._current_time)
         self._hold_position(order)
         self._orders.add_linked_stop_loss_order(order, limit_order_id)
 
@@ -629,6 +643,7 @@ class Broker(AbstractBroker):
 
     def update(self, candle) -> None:
         """Review whether orders can be executed."""
+        self._current_time = candle.close_time
         # Execute all market orders
         self._execute_market_orders()
         # Review whether limit orders 
@@ -671,6 +686,8 @@ class Broker(AbstractBroker):
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
+        order.date_updated = self._current_time
+        # !
         self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -690,7 +707,9 @@ class Broker(AbstractBroker):
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = order.order_price
+        order.date_updated = self._current_time
         self._orders.remove_limit_order(order_id)
+        # !
         self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -713,6 +732,8 @@ class Broker(AbstractBroker):
         else:
             self._orders.add_order_to_market_orders(order_id)
         order.status = OrderStatus.ACTIVATED
+        order.date_activated = self._current_time
+        order.date_updated = self._current_time
 
     def _execute_strategy_market_order(self, 
                                        order_id: int, 
@@ -732,7 +753,9 @@ class Broker(AbstractBroker):
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
+        order.date_updated = self._current_time
         self._orders.remove_strategy_order(order_id)
+        # !
         self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -754,7 +777,9 @@ class Broker(AbstractBroker):
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = order.order_price
+        order.date_updated = self._current_time
         self._orders.remove_strategy_order(order_id)
+        # !
         self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()
