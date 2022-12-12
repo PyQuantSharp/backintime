@@ -299,6 +299,23 @@ def _get_match_predicates(candle) -> MatchPredicates:
     yield lambda price: price == candle.CLOSE
 
 
+class Trade:
+    # TODO: add time hints
+    def __init__(self, order_info: OrderInfo, result_balance: Decimal):
+        self._order_info = order_info
+        self._result_balance = result_balance
+
+    @property
+    def order(self) -> OrderInfo:
+        # Info about the order
+        return self._order_info
+    
+    @property
+    def result_balance(self) -> Decimal:
+        # fiat balance at the moment of order execution
+        return self._result_balance
+
+
 class Broker(AbstractBroker):
     """
     Broker provides orders management in a simulated
@@ -330,10 +347,9 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: t.Union[str, int], fees: FeesEstimator): 
-        # TODO: trades history
+    def __init__(self, start_money: Decimal, fees: FeesEstimator): 
         self._fees = fees
-        self._balance = Balance(fiat_balance = Decimal(start_money))
+        self._balance = Balance(fiat_balance = start_money)
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
         # Shared positions for TP/SL orders
@@ -342,6 +358,23 @@ class Broker(AbstractBroker):
         # Summarised TP/SL orders positions
         self._aggregated_buy_position = Decimal(0)
         self._aggregated_sell_position = Decimal(0)
+        # Let's just make it as a simple list as for now
+        self._trades: t.List[Trade] = []
+
+    def iter_trades(self) -> t.Iterator[Trade]:
+        """Get trades iterator."""
+        return iter(self._trades)
+
+    def get_trades(self) -> t.List[Trade]:
+        """Get trades list."""
+        return list(self._trades)
+
+    def _add_trade(self, order_id: int, order: Order) -> None:
+        """Add new trade."""
+        # TODO: consider trades with OrderInfo subclasses
+        self._trades.append(
+                        Trade(OrderInfo(order_id, order), 
+                              self._balance.fiat_balance))
 
     def get_balance(self) -> BalanceInfo:
         """Get balance info."""
@@ -604,12 +637,13 @@ class Broker(AbstractBroker):
     def _execute_market_orders(self, market_price: Decimal) -> None:
         for order_id, order in self._orders.get_market_orders():
             if isinstance(order, MarketOrder):
-                self._execute_market_order(order, market_price)
+                self._execute_market_order(order_id, order, market_price)
             elif isinstance(order, StrategyOrder):
                 self._execute_strategy_market_order(order_id, order, market_price)
         self._orders.remove_market_orders()
 
     def _execute_market_order(self, 
+                              order_id: int,
                               order: MarketOrder,
                               market_price: Decimal) -> None:
         if order.side is OrderSide.BUY:
@@ -624,6 +658,7 @@ class Broker(AbstractBroker):
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
+        self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
 
@@ -643,6 +678,7 @@ class Broker(AbstractBroker):
         order.status = OrderStatus.EXECUTED
         order.fill_price = order.order_price
         self._orders.remove_limit_order(order_id)
+        self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
         # Submit TP/SL orders, if any
@@ -684,6 +720,7 @@ class Broker(AbstractBroker):
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
         self._orders.remove_strategy_order(order_id)
+        self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()
 
@@ -705,5 +742,6 @@ class Broker(AbstractBroker):
         order.status = OrderStatus.EXECUTED
         order.fill_price = order.order_price
         self._orders.remove_strategy_order(order_id)
+        self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()
