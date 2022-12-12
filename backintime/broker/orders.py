@@ -24,6 +24,9 @@ class OrderSide(Enum):
     BUY = "BUY"
     SELL = "SELL"
 
+    def __str__(self) -> str:
+        return self.value
+
 
 class OrderStatus(Enum):
     CREATED = "CREATED"
@@ -31,6 +34,9 @@ class OrderStatus(Enum):
     EXECUTED = "EXECUTED"
     # Only for stop loss orders
     ACTIVATED = "ACTIVATED"
+    
+    def __str__(self) -> str:
+        return self.value
 
 
 class Order:
