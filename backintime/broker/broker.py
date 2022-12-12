@@ -173,7 +173,7 @@ class AbstractBroker(ABC):
 
 class OrdersRepository:
     def __init__(self):
-        self._market_orders: t.Set[int] = []    # Market/Strategy ids
+        self._market_orders: t.Set[int] = set()  # Market/Strategy ids
         self._limit_orders: t.Set[int] = set()    # Limit/Strategy ids
         self._strategy_orders: t.Set[int] = set()   # Strategy ids
         self._orders_counter = count()
@@ -248,7 +248,7 @@ class OrdersRepository:
         self._limit_orders.add(order_id)
 
     def remove_market_orders(self) -> None:
-        self._market_orders = []
+        self._market_orders = set()
 
     def remove_market_order(self, order_id: int) -> None:
         self._market_orders.remove(order_id)
