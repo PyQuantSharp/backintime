@@ -81,6 +81,10 @@ class OrderInfo:
     def order_price(self) -> t.Optional[Decimal]:
         return self._order.order_price
 
+    @property
+    def fill_price(self) -> t.Optional[Decimal]:
+        return self._order.fill_price
+
     @property 
     def status(self) -> OrderStatus:
         return self._order.status
