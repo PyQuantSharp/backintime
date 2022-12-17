@@ -53,7 +53,7 @@ class OrderType(Enum):
 
 
 class Order:
-    """ Base class for all orders """
+    """Base class for all orders."""
     def __init__(self, 
                  side: OrderSide, 
                  order_type: OrderType,
@@ -68,6 +68,7 @@ class Order:
         self.date_updated = date_created
         self.status = OrderStatus.CREATED
         self.fill_price: t.Optional[Decimal] = None
+        self.trading_fee: t.Optional[Decimal] = None
 
 # Strategy orders have trigger price
 class StrategyOrder(Order):

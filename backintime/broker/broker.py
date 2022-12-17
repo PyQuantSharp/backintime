@@ -10,6 +10,7 @@ from .base import (
     Trade,
     OrderInfo,
     LimitOrderInfo,
+    StrategyOrders,
     StrategyOrderInfo,
     BalanceInfo,
     BrokerException,
@@ -184,7 +185,8 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: Decimal, fees: FeesEstimator): 
+    def __init__(self, start_money: Decimal, fees: FeesEstimator):
+        assert start_money > 0, "Start money must be greater than zero"
         self._fees = fees
         self._balance = Balance(fiat_balance=start_money)
         self._balance_info = BalanceInfo(self._balance)
@@ -196,6 +198,7 @@ class Broker(AbstractBroker):
         self._aggregated_buy_position = Decimal(0)
         self._aggregated_sell_position = Decimal(0)
         # Let's just make it as a simple list as for now
+        self._trades_counter = count()
         self._trades: t.List[Trade] = []
         # Close time of the current candle
         self._current_time = None
@@ -210,10 +213,11 @@ class Broker(AbstractBroker):
 
     def _add_trade(self, order_id: int, order: Order) -> None:
         """Add new trade."""
-        # TODO: consider trades with OrderInfo subclasses
-        self._trades.append(
-                        Trade(OrderInfo(order_id, order), 
-                              self._balance.fiat_balance))
+        # TODO: consider concrete trades with OrderInfo subclasses
+        trade_id = next(self._trades_counter)
+        order_info = OrderInfo(order_id, order)
+        balance = self._balance.fiat_balance
+        self._trades.append(Trade(trade_id, order_info, balance))
 
     def get_balance(self) -> BalanceInfo:
         """Get balance info."""
@@ -415,33 +419,54 @@ class Broker(AbstractBroker):
         including execution fee. For BUY orders only.
         """
         if order.order_price:   # Limit
-            return self._get_maker_price(order)
+            price, _ = self._get_maker_price(order)
+            return price
         else:                   # Market 
-            return self._get_taker_price(order)
+            price, _ = self._get_taker_price(order)
+            return price
 
-    def _get_maker_price(self, order) -> Decimal:
+    def _get_maker_price(self, order) -> t.Tuple[Decimal, Decimal]:
         """
         Estimate total amount of funds required to execute the order
-        including maker fee. For BUY orders only.
+        including maker fee. Return amount and calculated fee.
+        For BUY orders only.
         """
         total_amount = order.amount * order.order_price
-        return self._fees.estimate_maker_price(total_amount)
+        price = self._fees.estimate_maker_price(total_amount)
+        fee = price - total_amount
+        return price, fee
 
-    def _get_maker_gain(self, order) -> Decimal:
-        """Estimate gain minus maker fee. For SELL orders only."""
-        total_amount = order.amount * order.order_price
-        return self._fees.estimate_maker_gain(total_amount)
-
-    def _get_taker_price(self, order) -> Decimal:
+    def _get_taker_price(self, order) -> t.Tuple[Decimal, Decimal]:
         """
         Estimate total amount of funds required to execute the order
-        including taker fee. For BUY orders only.
+        including taker fee. Return amount and calculated fee.
+        For BUY orders only.
         """
-        return self._fees.estimate_taker_price(order.amount)
+        price = self._fees.estimate_taker_price(order.amount)
+        fee = price - order.amount
+        return price, fee
 
-    def _get_taker_gain(self, order, market_price: Decimal) -> Decimal:
-        """Estimate gain minus taker fee. For SELL orders only."""
-        return self._fees.estimate_taker_gain(order.amount * market_price)
+    def _get_maker_gain(self, order) -> t.Tuple[Decimal, Decimal]:
+        """
+        Estimate gain minus maker fee. Return gain and calculated fee.
+        For SELL orders only.
+        """
+        total_amount = order.amount * order.order_price
+        gain = self._fees.estimate_maker_gain(total_amount)
+        fee = total_amount - gain
+        return gain, fee
+
+    def _get_taker_gain(self, 
+                        order, 
+                        market_price: Decimal) -> t.Tuple[Decimal, Decimal]:
+        """
+        Estimate gain minus taker fee. Return gain and calculated fee. 
+        For SELL orders only.
+        """
+        total_amount = order.amount * market_price
+        gain = self._fees.estimate_taker_gain(total_amount)
+        fee = total_amount - gain
+        return gain, fee
 
     def _cancel_strategy_orders(self) -> None:
         """
@@ -487,19 +512,20 @@ class Broker(AbstractBroker):
                               order: MarketOrder,
                               market_price: Decimal) -> None:
         if order.side is OrderSide.BUY:
-            price = self._get_taker_price(order)
+            price, fee = self._get_taker_price(order)
+            order.trading_fee = fee
             self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount / market_price)
 
         elif order.side is OrderSide.SELL:
-            gain = self._get_taker_gain(order, market_price)
+            gain, fee = self._get_taker_gain(order, market_price)
+            order.trading_fee = fee
             self._balance.withdraw_crypto(order.amount)
             self._balance.deposit_fiat(gain)
 
         order.status = OrderStatus.EXECUTED
         order.fill_price = market_price
         order.date_updated = self._current_time
-        # !
         self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -508,12 +534,14 @@ class Broker(AbstractBroker):
                              order_id: int, 
                              order: LimitOrder) -> None:
         if order.side is OrderSide.BUY:
-            price = self._get_maker_price(order)
+            price, fee = self._get_maker_price(order)
+            order.trading_fee = fee
             self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount)
 
         elif order.side is OrderSide.SELL:
-            gain = self._get_maker_gain(order)
+            gain, fee = self._get_maker_gain(order)
+            order.trading_fee = fee
             self._balance.withdraw_crypto(order.amount)
             self._balance.deposit_fiat(gain)
 
@@ -521,7 +549,6 @@ class Broker(AbstractBroker):
         order.fill_price = order.order_price
         order.date_updated = self._current_time
         self._orders.remove_limit_order(order_id)
-        # !
         self._add_trade(order_id, order)
         # Cancel all TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -552,13 +579,15 @@ class Broker(AbstractBroker):
                                        order: StrategyOrder, 
                                        market_price: Decimal) -> None:
         if order.side is OrderSide.BUY:
-            price = self._get_taker_price(order)
+            price, fee = self._get_taker_price(order)
+            order.trading_fee = fee
             self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount / market_price)
             self._aggregated_buy_position -= price
 
         elif order.side is OrderSide.SELL:
-            gain = self._get_taker_gain(order, market_price)
+            gain, fee = self._get_taker_gain(order, market_price)
+            order.trading_fee = fee
             self._balance.withdraw_crypto(order.amount)
             self._balance.deposit_fiat(gain)
             self._aggregated_sell_position -= order.amount 
@@ -567,7 +596,6 @@ class Broker(AbstractBroker):
         order.fill_price = market_price
         order.date_updated = self._current_time
         self._orders.remove_strategy_order(order_id)
-        # !
         self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()
@@ -576,13 +604,15 @@ class Broker(AbstractBroker):
                                       order_id: int, 
                                       order: StrategyOrder) -> None:
         if order.side is OrderSide.BUY:
-            price = self._get_maker_price(order)
+            price, fee = self._get_maker_price(order)
+            order.trading_fee = fee
             self._balance.withdraw_fiat(price)
             self._balance.deposit_crypto(order.amount)
             self._aggregated_buy_position -= price
 
         elif order.side is OrderSide.SELL:
-            gain = self._get_maker_gain(order)
+            gain, fee = self._get_maker_gain(order)
+            order.trading_fee = fee
             self._balance.withdraw_crypto(order.amount)
             self._balance.deposit_fiat(gain)
             self._aggregated_sell_position -= order.amount 
@@ -591,7 +621,6 @@ class Broker(AbstractBroker):
         order.fill_price = order.order_price
         order.date_updated = self._current_time
         self._orders.remove_strategy_order(order_id)
-        # !
         self._add_trade(order_id, order)
         # Cancel all other TP/SL orders since position was modified
         self._cancel_strategy_orders()

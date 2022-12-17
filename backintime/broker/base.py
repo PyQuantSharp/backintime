@@ -97,6 +97,10 @@ class OrderInfo:
     def fill_price(self) -> t.Optional[Decimal]:
         return self._order.fill_price
 
+    @property
+    def trading_fee(self) -> t.Optional[Decimal]:
+        return self._order.trading_fee
+
     @property 
     def is_unfulfilled(self) -> bool:
         return self._order.status is OrderStatus.CREATED or \
@@ -209,10 +213,17 @@ class OrderCancellationError(BrokerException): pass
 
 
 class Trade:
-    # TODO: add time hints
-    def __init__(self, order_info: OrderInfo, result_balance: Decimal):
+    def __init__(self, 
+                 trade_id: int, 
+                 order_info: OrderInfo, 
+                 result_balance: Decimal):
+        self._trade_id = trade_id
         self._order_info = order_info
         self._result_balance = result_balance
+
+    @property
+    def trade_id(self) -> int:
+        return self._trade_id
 
     @property
     def order(self) -> OrderInfo:
