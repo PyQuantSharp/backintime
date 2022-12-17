@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from itertools import count
 from decimal import Decimal    # https://docs.python.org/3/library/decimal.html
-from .balance import Balance
+from .balance import Balance, InsufficientFunds
 from .fees import FeesEstimator
 from .base import (
     Trade,
@@ -332,11 +332,14 @@ class Broker(AbstractBroker):
         Ensure there are enough funds available 
         and decrease available value.
         """
-        if order.side == OrderSide.BUY:
-            total_price = self._get_total_price(order)
-            self._balance.hold_fiat(total_price)
-        elif order.side == OrderSide.SELL:
-            self._balance.hold_crypto(order.amount)
+        try:
+            if order.side == OrderSide.BUY:
+                total_price = self._get_total_price(order)
+                self._balance.hold_fiat(total_price)
+            elif order.side == OrderSide.SELL:
+                self._balance.hold_crypto(order.amount)
+        except InsufficientFunds as e:
+            raise OrderSubmissionError(str(e))
 
     def _hold_position(self, order: StrategyOrder) -> None:
         """
@@ -346,30 +349,33 @@ class Broker(AbstractBroker):
         Should new TP/SL be posted, it can then acquire funds
         from the shared position without modifying the balance.
         """
-        if order.side == OrderSide.BUY:
-            total_price = self._get_total_price(order)
-            if total_amount <= self._balance.available_fiat_balance:
-                # If total amount fits, hold funds and 
-                # make it shared for other TP/SL
-                self._balance.hold_fiat(total_price)
-                self._shared_buy_position += total_price
-            else:
-                # Acquire only insufficient
-                hold_amount = total_price - self._shared_buy_position
-                self._balance.hold_fiat(hold_amount)
-            self._aggregated_buy_position += total_price
+        try:
+            if order.side == OrderSide.BUY:
+                total_price = self._get_total_price(order)
+                if total_amount <= self._balance.available_fiat_balance:
+                    # If total amount fits, hold funds and 
+                    # make it shared for other TP/SL
+                    self._balance.hold_fiat(total_price)
+                    self._shared_buy_position += total_price
+                else:
+                    # Acquire only insufficient
+                    hold_amount = total_price - self._shared_buy_position
+                    self._balance.hold_fiat(hold_amount)
+                self._aggregated_buy_position += total_price
 
-        elif order.side == OrderSide.SELL:
-            if order.amount <= self._balance.available_crypto_balance:
-                # If total amount fits, hold funds and 
-                # make it shared for other TP/SL 
-                self._balance.hold_crypto(order.amount)
-                self._shared_sell_position += order.amount 
-            else:
-                # Acquire only insufficient
-                hold_amount = order.amount - self._shared_sell_position
-                self._balance.hold_crypto(hold_amount)
-            self._aggregated_sell_position += order.amount
+            elif order.side == OrderSide.SELL:
+                if order.amount <= self._balance.available_crypto_balance:
+                    # If total amount fits, hold funds and 
+                    # make it shared for other TP/SL 
+                    self._balance.hold_crypto(order.amount)
+                    self._shared_sell_position += order.amount 
+                else:
+                    # Acquire only insufficient
+                    hold_amount = order.amount - self._shared_sell_position
+                    self._balance.hold_crypto(hold_amount)
+                self._aggregated_sell_position += order.amount
+        except InsufficientFunds as e:
+            raise OrderSubmissionError(str(e))
 
     def _release_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
         """Increase funds available for trading."""
