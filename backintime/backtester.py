@@ -1,78 +1,65 @@
 import typing as t
 
-from itertools import chain
 from datetime import datetime
-from backintime.v163.trading_strategy import TradingStrategy
-from backintime.v163.data.data_provider import DataProvider
-from backintime.v163.exchange import Exchange
-from backintime.v163.analyser import Analyser, AnalyserBuffer, Value
-from backintime.v163.candles import Candles, CandlesBuffer
-
-
-def get_timeframes_meta(params: t.Iterable[OscillatorParam]) -> dict:
-    data = {}
-    for param in params:
-        tf = param.timeframe
-        candle_property = param.candle_property
-        tf_meta = data.get(tf, {})
-        props = tf_meta.get("candle_properties", {})
-        props[candle_property] = max(props.get(candle_property, 0),
-                                     param.quantity)
-        tf_meta["max_quantity"] = max(tf_meta.get("max_quantity", 0),
-                                      param.quantity)
-        if "candle_properties" not in tf_meta:
-            tf_meta["candle_properties"] = props
-        if tf not in data:
-            data[tf] = tf_meta
-    return data
-
-
-def prefetch_values(timeframe_meta) -> t.List[Value]:
-    data = []
-    for timeframe, meta in timeframe_meta.items():
-        for candle_property, quantity in meta["candle_properties"].items():
-            data.append(Value(timeframe=timeframe,
-                              candle_property=candle_property,
-                              quantity=quantity,
-                              values=[]))   # TODO: fetch values here
-    return data
-    
-
-def get_oscillators_params(
-        strategy_t: t.Type[TradingStrategy]) -> t.List[OscillatorParam]:
-    params = map(lambda oscillator: oscillators.get_params(), 
-                 strategy_t.oscillators)
-    return list(chain.from_iterable(params))
+from decimal import Decimal
+from .trading_strategy import TradingStrategy
+from .data.data_provider import (
+    DataProvider, 
+    DataProviderFactory,
+    DataProviderError
+)
+from .analyser.analyser import Analyser
+from .broker.base import BrokerException
+from .broker.broker import Broker
+from .broker.balance import InsufficientFunds
+from .broker.fees import FeesEstimator
+from .broker_proxy import BrokerProxy
+from .candles import Candles, CandlesBuffer
+from .result import BacktestingResult
+from .utils import validate_timeframes, prefetch_values
 
 
 class Backtester:
-    def __init__(self, 
-                 strategy_t: t.Type[TradingStrategy], 
-                 market_data: DataProvider):
+    def __init__(self,
+                 strategy_t: t.Type[TradingStrategy],
+                 data_provider_factory: DataProviderFactory):
+        validate_timeframes(strategy_t, data_provider_factory)
         self._strategy_t = strategy_t
-        self._market_data = market_data
+        self._data_provider_factory = data_provider_factory
 
-    def run(self, since: datetime, until: datetime):
-        oscillators_params = get_oscillators_params(self._strategy_t)
-        timeframes_meta = get_timeframes_meta(oscillator_params)
-        base_timeframe = self._market_data.timeframe()
-        
-        analyser_buffer = AnalyserBuffer(prefetch_values(timeframes_meta), 
-                                         base_timeframe)
-
-        candles_buffer = CandlesBuffer(self._strategy_t.timeframes, 
-                                       base_timeframe)
-  
-        exchange = Exchange(self._market_data)
-        analyser = Analyser(self._strategy_t.oscillators, analyser_buffer)
+    def run(self, 
+            start_money: t.Union[int, str],
+            since: datetime, 
+            until: datetime,
+            maker_fee: str,
+            taker_fee: str) -> BacktestingResult:
+        # Create shared `Broker` for `BrokerProxy`
+        fees = FeesEstimator(Decimal(maker_fee), Decimal(taker_fee))
+        broker = Broker(Decimal(start_money), fees)
+        broker_proxy = BrokerProxy(broker)
+        # Create shared buffer for `Analyser`
+        analyser_buffer = prefetch_values(self._strategy_t, 
+                                          self._data_provider_factory, 
+                                          since)
+        analyser = Analyser(analyser_buffer, self._strategy_t.oscillators)
+        # Create shared buffer for `Candles`
+        candles_buffer = CandlesBuffer(since, self._strategy_t.timeframes)
         candles = Candles(candles_buffer)
-        strategy = self._strategy_t(exchange, analyser, candles)
-        ticks = 0
 
-        for candle in exchange.candles():
-            analyser_buffer.update(candle, ticks)
-            candles_buffer.update(candle, ticks)
-            strategy.tick()
-            ticks += 1
+        strategy = strategy_t(broker_proxy, analyser, candles)
+        market_data = self._data_provider_factory.create(since, until)
 
-        return exchange.get_trades() # wrap to instance with output methods
+        try:
+            for candle in market_data:
+                broker.update(candle)
+                candles_buffer.update(candle)
+                analyser_buffer.update(candle)
+                strategy.tick()
+        except (BrokerException, DataProviderError):
+            # These are more or less expected, so don't terminate
+            pass    # TODO: logging here
+
+        return BacktestingResult(self._strategy_t.get_title(),
+                                 market_data,
+                                 start_money,
+                                 broker.get_trades(), [])

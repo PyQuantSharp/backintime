@@ -2,15 +2,15 @@ import typing as t
 
 from datetime import datetime
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass
 class Candle:
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal
     open_time: datetime
     close_time: datetime
-    is_closed: t.Optional[bool]=True
