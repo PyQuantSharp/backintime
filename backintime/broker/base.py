@@ -107,7 +107,8 @@ class OrderInfo:
 
     @property 
     def is_canceled(self) -> bool:
-        return self._order.status is OrderStatus.CANCELLED
+        return self._order.status is OrderStatus.CANCELLED or \
+                self._order.status is OrderStatus.SYS_CANCELLED
 
     @property 
     def is_executed(self) -> bool:

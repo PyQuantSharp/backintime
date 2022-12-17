@@ -482,7 +482,7 @@ class Broker(AbstractBroker):
         for order_id, order in self._orders.get_strategy_orders():
             self._release_position(order)
             self._orders.remove_strategy_order(order_id)
-            order.status = OrderStatus.CANCELLED
+            order.status = OrderStatus.SYS_CANCELLED
 
     def update(self, candle) -> None:
         """Review whether orders can be executed."""

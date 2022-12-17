@@ -34,6 +34,7 @@ class OrderStatus(Enum):
     CANCELLED = "CANCELLED"
     EXECUTED = "EXECUTED"
     # Only for TP/SL orders
+    SYS_CANCELLED = "SYS_CANCELLED"
     ACTIVATED = "ACTIVATED"
 
     def __str__(self) -> str:
