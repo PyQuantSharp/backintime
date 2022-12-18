@@ -2,9 +2,7 @@ import typing as t
 from datetime import datetime
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from itertools import count
 from decimal import Decimal    # https://docs.python.org/3/library/decimal.html
-from .balance import Balance
 from .orders import (
     OrderSide,
     Order, 
@@ -23,35 +21,32 @@ from .orders import (
 )
 
 
-class BalanceInfo:
-    """
-    Wrapper around `Balance` that provides a read-only view
-    into the wrapped `Balance` data.
-    """
-    def __init__(self, data: Balance):
-        self._data = data
-
-    @property
-    def available_fiat_balance(self) -> Decimal:
-        """Get fiat available for trading."""
-        return self._data.available_fiat_balance
-
-    @property
-    def available_crypto_balance(self) -> Decimal:
-        """Get crypto available for trading."""
-        return self._data.available_crypto_balance
-
-    @property
-    def fiat_balance(self) -> Decimal:
-        """Get fiat balance."""
-        return self._data.fiat_balance
-
-    @property
-    def crypto_balance(self) -> Decimal:
-        """Get crypto balance."""
-        return self._data.crypto_balance
+class BrokerException(Exception):
+    """Base class for all broker-related exceptions."""
+    pass
 
 
+class OrderSubmissionError(BrokerException):
+    """Generic exception for order submission error."""
+    pass
+
+
+class InvalidOrderData(OrderSubmissionError):
+    """Order submission failed because order data is invalid."""
+    pass
+
+
+class InsufficientFunds(OrderSubmissionError):
+    """Order submission failed due to insufficient funds."""
+    pass
+
+
+class OrderCancellationError(BrokerException):
+    """Generic exception for order cancellation error."""
+    pass
+
+
+# Implementation for orders & trades
 class OrderInfo:
     """
     Wrapper around `Order` that provides a read-only view
@@ -151,10 +146,74 @@ class LimitOrderInfo(OrderInfo):
                                      stop_loss)
 
 
-class AbstractBroker(ABC):
+class Trade:
+    def __init__(self, 
+                 trade_id: int, 
+                 order_info: OrderInfo, 
+                 result_balance: Decimal):
+        self._trade_id = trade_id
+        self._order_info = order_info
+        self._result_balance = result_balance
+
+    @property
+    def trade_id(self) -> int:
+        return self._trade_id
+
+    @property
+    def order(self) -> OrderInfo:
+        # Info about the order
+        return self._order_info
+    
+    @property
+    def result_balance(self) -> Decimal:
+        # fiat balance at the moment of order execution
+        return self._result_balance
+
+
+class AbstractBalance:
+    @property
     @abstractmethod
-    def get_balance(self) -> BalanceInfo:
+    def available_fiat_balance(self) -> Decimal:
+        """Get fiat available for trading."""
+        pass
+
+    @property
+    @abstractmethod
+    def available_crypto_balance(self) -> Decimal:
+        """Get crypto available for trading."""
+        pass
+
+    @property
+    @abstractmethod
+    def fiat_balance(self) -> Decimal:
+        """Get fiat balance."""
+        pass
+
+    @property
+    @abstractmethod
+    def crypto_balance(self) -> Decimal:
+        """Get crypto balance."""
+        pass
+
+
+class AbstractBroker(ABC):
+    """
+    Broker provides orders management in a simulated
+    market environment.
+    """
+    @abstractmethod
+    def get_balance(self) -> AbstractBalance:
         """Get balance info."""
+        pass
+
+    @abstractmethod
+    def get_max_fiat_for_taker(self) -> Decimal:
+        """Get max available fiat for a 'taker' order."""
+        pass
+
+    @abstractmethod
+    def get_max_fiat_for_maker(self) -> Decimal:
+        """Get max available fiat for a 'maker' order."""
         pass
 
     @abstractmethod
@@ -194,43 +253,23 @@ class AbstractBroker(ABC):
     def cancel_order(self, order_id: int) -> None:
         """Cancel order by id."""
         pass
-
-
-class BrokerException(Exception):
-    """Base class for all broker-related exceptions."""
-    pass
-
-
-class OrderNotFound(BrokerException):
-    def __init__(self, order_id: int):
-        super().__init__(f"Order with `order_id`={order_id} was not found")
-
-
-class OrderSubmissionError(BrokerException): pass
-
-
-class OrderCancellationError(BrokerException): pass
-
-
-class Trade:
-    def __init__(self, 
-                 trade_id: int, 
-                 order_info: OrderInfo, 
-                 result_balance: Decimal):
-        self._trade_id = trade_id
-        self._order_info = order_info
-        self._result_balance = result_balance
-
-    @property
-    def trade_id(self) -> int:
-        return self._trade_id
-
-    @property
-    def order(self) -> OrderInfo:
-        # Info about the order
-        return self._order_info
     
-    @property
-    def result_balance(self) -> Decimal:
-        # fiat balance at the moment of order execution
-        return self._result_balance
+    @abstractmethod
+    def iter_orders(self) -> t.Iterator[OrderInfo]:
+        """Get orders iterator."""
+        pass
+
+    @abstractmethod
+    def iter_trades(self) -> t.Iterator[Trade]:
+        """Get trades iterator."""
+        pass
+
+    @abstractmethod
+    def get_orders(self) -> t.Sequence[OrderInfo]:
+        """Get orders sequence."""
+        pass
+
+    @abstractmethod
+    def get_trades(self) -> t.Sequence[Trade]:
+        """Get trades sequence."""
+        pass

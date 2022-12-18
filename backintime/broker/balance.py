@@ -1,13 +1,10 @@
 import typing as t
 from decimal import Decimal   # https://docs.python.org/3/library/decimal.html
+from .base import AbstractBalance, InsufficientFunds
 
 
-class InsufficientFunds(Exception):
-    def __init__(self):
-        super().__init__("Insufficient funds")
-
-
-class Balance:
+class Balance(AbstractBalance):
+    """Default balance implementation for default broker."""
     def __init__(self, 
                  fiat_balance: Decimal, 
                  crypto_balance: t.Optional[Decimal] = Decimal(0)):
@@ -90,3 +87,32 @@ class Balance:
                 f"available_fiat_balance={available_fiat_balance}, "
                 f"crypto_balance={crypto_balance}, "
                 f"available_crypto_balance={available_crypto_balance})")
+
+
+class BalanceInfo(AbstractBalance):
+    """
+    Wrapper around `Balance` that provides a read-only view
+    into the wrapped `Balance` data.
+    """
+    def __init__(self, data: Balance):
+        self._data = data
+
+    @property
+    def available_fiat_balance(self) -> Decimal:
+        """Get fiat available for trading."""
+        return self._data.available_fiat_balance
+
+    @property
+    def available_crypto_balance(self) -> Decimal:
+        """Get crypto available for trading."""
+        return self._data.available_crypto_balance
+
+    @property
+    def fiat_balance(self) -> Decimal:
+        """Get fiat balance."""
+        return self._data.fiat_balance
+
+    @property
+    def crypto_balance(self) -> Decimal:
+        """Get crypto balance."""
+        return self._data.crypto_balance

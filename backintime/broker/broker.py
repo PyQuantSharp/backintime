@@ -1,20 +1,17 @@
 import typing as t
 from datetime import datetime
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
 from itertools import count
 from decimal import Decimal    # https://docs.python.org/3/library/decimal.html
-from .balance import Balance, InsufficientFunds
+from .balance import Balance, BalanceInfo
 from .fees import FeesEstimator
+from .repo import OrdersRepository
 from .base import (
     Trade,
     OrderInfo,
     LimitOrderInfo,
     StrategyOrders,
     StrategyOrderInfo,
-    BalanceInfo,
     BrokerException,
-    OrderNotFound,
     OrderSubmissionError,
     OrderCancellationError,
     AbstractBroker
@@ -34,124 +31,20 @@ from .orders import (
     LimitOrderFactory,
     StopLossFactory,
     TakeProfitFactory
+) 
+
+
+_match_predicates = (
+    lambda price, candle: price == candle.open,
+    lambda price, candle: price >= candle.low and price <= candle.high
+    lambda price, candle: price == candle.close
 )
 
 
-class OrdersRepository:
-    def __init__(self):
-        self._market_orders: t.Set[int] = set()  # Market/Strategy ids
-        self._limit_orders: t.Set[int] = set()    # Limit/Strategy ids
-        self._strategy_orders: t.Set[int] = set()  # Strategy ids
-        self._orders_counter = count()
-        self._orders_map: t.Dict[int, Order] = {}
-        self._linked_strategy_orders: t.Dict[int, StrategyOrders] = {}
-
-    def get_order(self, order_id: int) -> t.Optional[Order]:
-        order = self._orders_map.get(order_id)
-
-    def get_market_orders(self):
-        for order_id in self._market_orders.copy():
-            yield (order_id, self._orders_map[order_id])
-
-    def get_limit_orders(self):
-        for order_id in self._limit_orders.copy():
-            yield (order_id, self._orders_map[order_id])
-
-    def get_strategy_orders(self):
-        for order_id in self._strategy_orders.copy():
-            yield (order_id, self._orders_map[order_id])
-
-    def get_linked_orders(self, order_id: int) -> StrategyOrders:
-        return self._linked_strategy_orders[order_id]
-
-    def add_market_order(self, order: MarketOrder) -> int:
-        order_id = next(self._orders_counter)
-        self._market_orders.append(order_id)
-        self._orders_map[order_id] = order
-        return order_id 
-
-    def add_limit_order(self, order: LimitOrder) -> int:
-        order_id = next(self._orders_counter)
-        self._limit_orders.add(order_id)
-        self._orders_map[order_id] = order
-        # Create shared obj for linked TP/SL orders 
-        strategy_orders = StrategyOrders()
-        self._linked_strategy_orders[order_id] = strategy_orders 
-        return order_id
-
-    def add_take_profit_order(self, order: TakeProfitOrder) -> int:
-        return self._add_strategy_order(order)
-
-    def add_stop_loss_order(self, order: StopLossOrder) -> int:
-        return self._add_strategy_order(order)
-
-    def add_linked_take_profit_order(self, 
-                                     order: TakeProfitOrder, 
-                                     limit_order_id: int) -> int:
-        order_id = self._add_strategy_order(order)
-        limit_order = self._orders_map[limit_order_id]
-        limit_order.take_profit = order
-        # NOTE: StrategyOrders is shared with LimitOrderInfo 
-        linked = self._linked_strategy_orders[limit_order_id]
-        linked.take_profit_id = order_id
-        return order_id
-
-    def add_linked_stop_loss_order(self, 
-                                   order: StopLossOrder, 
-                                   limit_order_id: int) -> int:
-        order_id = self._add_strategy_order(order)
-        limit_order = self._orders_map[limit_order_id]
-        limit_order.stop_loss = order
-        # NOTE: StrategyOrders is shared with LimitOrderInfo
-        linked = self._linked_strategy_orders[limit_order_id]
-        linked.stop_loss_id = order_id
-        return order_id
-
-    def add_order_to_market_orders(self, order_id: int) -> None:
-        self._market_orders.add(order_id)
-
-    def add_order_to_limit_orders(self, order_id: int) -> None:
-        self._limit_orders.add(order_id)
-
-    def remove_market_orders(self) -> None:
-        self._market_orders = set()
-
-    def remove_market_order(self, order_id: int) -> None:
-        self._market_orders.remove(order_id)
-
-    def remove_limit_order(self, order_id: int) -> None:
-        self._limit_orders.remove(order_id)
-
-    def remove_take_profit_order(self, order_id: int) -> None:
-        self.remove_strategy_order(order_id)
-
-    def remove_stop_loss_order(self, order_id: int) -> None:
-        self.remove_strategy_order(order_id)
-
-    def remove_strategy_order(self, order_id: int) -> None:
-        if order_id in self._limit_orders:
-            self._limit_orders.remove(order_id)
-        if order_id in self._market_orders:
-            self._market_orders.remove(order_id)
-        if order_id in self._strategy_orders:
-            self._strategy_orders.remove(order_id)
-
-    def _add_strategy_order(self, order: StrategyOrder) -> int:
-        order_id = next(self._orders_counter)
-        self._limit_orders.add(order_id)
-        self._strategy_orders.add(order_id)
-        self._orders_map[order_id] = order
-        return order_id
-
-
-MatchPredicates = t.TypeVar(
-                "MatchPredicates", 
-                bound=t.Generator[t.Callable[[Decimal], bool], None, None])
-
-def _get_match_predicates(candle) -> MatchPredicates:
-    yield lambda price: price == candle.OPEN
-    yield lambda price: price >= candle.LOW and price <= candle.HIGH
-    yield lambda price: price == candle.CLOSE
+class OrderNotFound(OrderCancellationError):
+    def __init__(self, order_id: int):
+        message = f"Order with order_id={order_id} was not found"
+        super().__init__(message)
 
 
 class Broker(AbstractBroker):
@@ -165,7 +58,7 @@ class Broker(AbstractBroker):
 
     - Market orders: 
         All market orders will be executed when 
-        the `_update` method is called. 
+        the `update` method is called. 
         The price of execution is the candle's OPEN price.
 
     - Limit orders: 
@@ -201,7 +94,15 @@ class Broker(AbstractBroker):
         self._trades_counter = count()
         self._trades: t.List[Trade] = []
         # Close time of the current candle
-        self._current_time = None
+        self._current_time: t.Optional[datetime] = None
+
+    def iter_orders(self) -> t.Iterator[OrderInfo]:
+        """Get orders iterator."""
+        return OrderInfo(order_id, order) for order_id, order in self._orders
+
+    def get_orders(self) -> t.List[OrderInfo]:
+        """Get orders list."""
+        return list(self.iter_orders)
 
     def iter_trades(self) -> t.Iterator[Trade]:
         """Get trades iterator."""
@@ -332,14 +233,11 @@ class Broker(AbstractBroker):
         Ensure there are enough funds available 
         and decrease available value.
         """
-        try:
-            if order.side == OrderSide.BUY:
-                total_price = self._get_total_price(order)
-                self._balance.hold_fiat(total_price)
-            elif order.side == OrderSide.SELL:
-                self._balance.hold_crypto(order.amount)
-        except InsufficientFunds as e:
-            raise OrderSubmissionError(str(e))
+        if order.side == OrderSide.BUY:
+            total_price = self._get_total_price(order)
+            self._balance.hold_fiat(total_price)
+        elif order.side == OrderSide.SELL:
+            self._balance.hold_crypto(order.amount)
 
     def _hold_position(self, order: StrategyOrder) -> None:
         """
@@ -349,33 +247,30 @@ class Broker(AbstractBroker):
         Should new TP/SL be posted, it can then acquire funds
         from the shared position without modifying the balance.
         """
-        try:
-            if order.side == OrderSide.BUY:
-                total_price = self._get_total_price(order)
-                if total_amount <= self._balance.available_fiat_balance:
-                    # If total amount fits, hold funds and 
-                    # make it shared for other TP/SL
-                    self._balance.hold_fiat(total_price)
-                    self._shared_buy_position += total_price
-                else:
-                    # Acquire only insufficient
-                    hold_amount = total_price - self._shared_buy_position
-                    self._balance.hold_fiat(hold_amount)
-                self._aggregated_buy_position += total_price
+        if order.side == OrderSide.BUY:
+            total_price = self._get_total_price(order)
+            if total_amount <= self._balance.available_fiat_balance:
+                # If total amount fits, hold funds and 
+                # make it shared for other TP/SL
+                self._balance.hold_fiat(total_price)
+                self._shared_buy_position += total_price
+            else:
+                # Acquire only insufficient
+                hold_amount = total_price - self._shared_buy_position
+                self._balance.hold_fiat(hold_amount)
+            self._aggregated_buy_position += total_price
 
-            elif order.side == OrderSide.SELL:
-                if order.amount <= self._balance.available_crypto_balance:
-                    # If total amount fits, hold funds and 
-                    # make it shared for other TP/SL 
-                    self._balance.hold_crypto(order.amount)
-                    self._shared_sell_position += order.amount 
-                else:
-                    # Acquire only insufficient
-                    hold_amount = order.amount - self._shared_sell_position
-                    self._balance.hold_crypto(hold_amount)
-                self._aggregated_sell_position += order.amount
-        except InsufficientFunds as e:
-            raise OrderSubmissionError(str(e))
+        elif order.side == OrderSide.SELL:
+            if order.amount <= self._balance.available_crypto_balance:
+                # If total amount fits, hold funds and 
+                # make it shared for other TP/SL 
+                self._balance.hold_crypto(order.amount)
+                self._shared_sell_position += order.amount 
+            else:
+                # Acquire only insufficient
+                hold_amount = order.amount - self._shared_sell_position
+                self._balance.hold_crypto(hold_amount)
+            self._aggregated_sell_position += order.amount
 
     def _release_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
         """Increase funds available for trading."""
@@ -488,20 +383,20 @@ class Broker(AbstractBroker):
         self._current_time = candle.close_time
         # Execute all market orders
         self._execute_market_orders()
-        # Review whether limit orders 
-        for match_predicate in _get_match_predicates(candle):
+        # Review orders with limited price 
+        for match_predicate in _match_predicates:
             for order_id, order in self._orders.get_limit_orders():
                 # Review strategy orders
                 if isinstance(order, StrategyOrder):
                     if order.status is OrderStatus.CREATED:
-                        if match_predicate(order.target_price):
+                        if match_predicate(order.target_price, candle):
                             self._activate_strategy_order(order_id, order)
                     elif order.status is OrderStatus.ACTIVATED:
-                        if match_predicate(order.order_price):
+                        if match_predicate(order.order_price, candle):
                             self._execute_strategy_limit_order(order_id, order)
                 # Review limit orders
                 elif isinstance(order, LimitOrder):
-                    if match_predicate(order.order_price):
+                    if match_predicate(order.order_price, candle):
                         self._execute_limit_order(order_id, order)
 
     def _execute_market_orders(self, market_price: Decimal) -> None:
