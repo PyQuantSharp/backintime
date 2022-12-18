@@ -1,0 +1,160 @@
+from datetime import datetime
+from decimal import Decimal
+from backintime.timeframes import Timeframes as tf
+from backintime.candles import Candles, CandlesBuffer
+from backintime.data.candle import Candle
+
+
+def _candles_equal(first_candle: Candle, second_candle: Candle) -> bool:
+    return (first_candle.open_time == second_candle.open_time and \
+            first_candle.open == second_candle.open and \
+            first_candle.high == second_candle.high and \
+            first_candle.low == second_candle.low and \
+            first_candle.close == second_candle.close and \
+            first_candle.close_time == second_candle.close_time and \
+            first_candle.volume == second_candle.volume)
+
+
+def test_candles_buffer_candle_compression():
+    sample_h1_candles = [
+        Candle(open_time=datetime.fromisoformat('2022-12-01 00:00+00:00'),
+               open=Decimal('17165.53'),
+               high=Decimal('17236.29'),
+               low=Decimal('17122.65'),
+               close=Decimal('17161.55'),
+               close_time=datetime.fromisoformat('2022-12-01 00:59:59.999000+00:00'),
+               volume=Decimal('14453')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 01:00+00:00'),
+               open=Decimal('17161.55'),
+               high=Decimal('17170.32'),
+               low=Decimal('17105.37'),
+               close=Decimal('17117.13'),
+               close_time=datetime.fromisoformat('2022-12-01 01:59:59.999000+00:00'),
+               volume=Decimal('8650')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 02:00+00:00'),
+               open=Decimal('17117.13'),
+               high=Decimal('17142.99'),
+               low=Decimal('17088.01'),
+               close=Decimal('17123.98'),
+               close_time=datetime.fromisoformat('2022-12-01 02:59:59.999000+00:00'),
+               volume=Decimal('7981')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 03:00+00:00'),
+               open=Decimal('17124.53'),
+               high=Decimal('17169.73'),
+               low=Decimal('17122.18'),
+               close=Decimal('17150.98'),
+               close_time=datetime.fromisoformat('2022-12-01 03:59:59.999000+00:00'),
+               volume=Decimal('7343'))
+    ]
+
+    expected_open_time = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    expected_close_time = '2022-12-01 03:59:59.999000+00:00'
+    expected_close_time = datetime.fromisoformat(expected_close_time)
+    expected_h4_candle = Candle(open_time=expected_open_time,
+                                open=Decimal('17165.53'),
+                                high=Decimal('17236.29'),
+                                low=Decimal('17088.01'),
+                                close=Decimal('17150.98'),
+                                close_time=expected_close_time,
+                                volume=Decimal('38427'))
+
+    since = sample_h1_candles[0].open_time
+    timeframe = tf.H4
+    candles_buffer = CandlesBuffer(since, {timeframe})
+
+    for candle in sample_h1_candles:
+        candles_buffer.update(candle)
+
+    result_h4_candle = candles_buffer.get(timeframe)
+    assert _candles_equal(result_h4_candle, expected_h4_candle)
+
+
+def test_candle_compression():
+    sample_h1_candles = [
+        Candle(open_time=datetime.fromisoformat('2022-12-01 00:00+00:00'),
+               open=Decimal('17165.53'),
+               high=Decimal('17236.29'),
+               low=Decimal('17122.65'),
+               close=Decimal('17161.55'),
+               close_time=datetime.fromisoformat('2022-12-01 00:59:59.999000+00:00'),
+               volume=Decimal('14453')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 01:00+00:00'),
+               open=Decimal('17161.55'),
+               high=Decimal('17170.32'),
+               low=Decimal('17105.37'),
+               close=Decimal('17117.13'),
+               close_time=datetime.fromisoformat('2022-12-01 01:59:59.999000+00:00'),
+               volume=Decimal('8650')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 02:00+00:00'),
+               open=Decimal('17117.13'),
+               high=Decimal('17142.99'),
+               low=Decimal('17088.01'),
+               close=Decimal('17123.98'),
+               close_time=datetime.fromisoformat('2022-12-01 02:59:59.999000+00:00'),
+               volume=Decimal('7981')),
+
+        Candle(open_time=datetime.fromisoformat('2022-12-01 03:00+00:00'),
+               open=Decimal('17124.53'),
+               high=Decimal('17169.73'),
+               low=Decimal('17122.18'),
+               close=Decimal('17150.98'),
+               close_time=datetime.fromisoformat('2022-12-01 03:59:59.999000+00:00'),
+               volume=Decimal('7343'))
+    ]
+
+    expected_open_time = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    expected_close_time = '2022-12-01 03:59:59.999000+00:00'
+    expected_close_time = datetime.fromisoformat(expected_close_time)
+    expected_h4_candle = Candle(open_time=expected_open_time,
+                                open=Decimal('17165.53'),
+                                high=Decimal('17236.29'),
+                                low=Decimal('17088.01'),
+                                close=Decimal('17150.98'),
+                                close_time=expected_close_time,
+                                volume=Decimal('38427'))
+
+    since = sample_h1_candles[0].open_time
+    timeframe = tf.H4
+    candles_buffer = CandlesBuffer(since, {timeframe})
+
+    for candle in sample_h1_candles:
+        candles_buffer.update(candle)
+
+    result_h4_candle = Candles(candles_buffer).get(timeframe)
+    assert _candles_equal(result_h4_candle, expected_h4_candle)
+
+
+def test_candles_buffer_unexpected_timeframe_will_raise():
+    since = datetime.fromisoformat("2020-12-12 00:00+00:00")
+    timeframes = { tf.M1, tf.H1 }
+    unexpected_timeframe = tf.D1
+    raised = False
+    candles_buffer = CandlesBuffer(since, timeframes)
+
+    try:
+        candles_buffer.get(unexpected_timeframe)
+    except:
+        raised = True
+
+    assert raised
+
+
+def test_unexpected_timeframe_will_raise():
+    since = datetime.fromisoformat("2020-12-12 00:00+00:00")
+    timeframes = { tf.M1, tf.H1 }
+    unexpected_timeframe = tf.D1
+    raised = False
+    candles_buffer = CandlesBuffer(since, timeframes)
+
+    try:
+        Candles(candles_buffer).get(unexpected_timeframe)
+    except:
+        raised = True
+
+    assert raised
+
