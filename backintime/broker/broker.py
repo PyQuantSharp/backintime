@@ -437,9 +437,8 @@ class Broker(AbstractBroker):
         including maker fee. Return amount and calculated fee.
         For BUY orders only.
         """
-        total_amount = order.amount * order.order_price
-        price = self._fees.estimate_maker_price(total_amount)
-        fee = price - total_amount
+        price = self._fees.estimate_maker_price(order.amount)
+        fee = price - order.amount
         return price, fee
 
     def _get_taker_price(self, order) -> t.Tuple[Decimal, Decimal]:
@@ -543,7 +542,7 @@ class Broker(AbstractBroker):
             price, fee = self._get_maker_price(order)
             order.trading_fee = fee
             self._balance.withdraw_fiat(price)
-            self._balance.deposit_crypto(order.amount)
+            self._balance.deposit_crypto(order.amount / order.order_price)
 
         elif order.side is OrderSide.SELL:
             gain, fee = self._get_maker_gain(order)
@@ -613,7 +612,7 @@ class Broker(AbstractBroker):
             price, fee = self._get_maker_price(order)
             order.trading_fee = fee
             self._balance.withdraw_fiat(price)
-            self._balance.deposit_crypto(order.amount)
+            self._balance.deposit_crypto(order.amount / order.order_price)
             self._aggregated_buy_position -= price
 
         elif order.side is OrderSide.SELL:

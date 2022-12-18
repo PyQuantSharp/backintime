@@ -6,20 +6,10 @@ from backintime.broker_proxy import Trade
 from backintime.broker.orders import OrderSide
 
 
-class TradeData:
-    def __init__(self, trade: Trade):
-        # TODO: Provide quantity field in `Trade`!
-        self.side = trade.order.order_side
-        self.quantity = trade.order.amount if trade.order.order_price \
-                            else trade.order.amount / trade.order.fill_price
-        self.fill_price = trade.order.fill_price
-        self.trading_fee = trade.order.trading_fee
-
-
 @dataclass
 class TradeProfit:
-    relative_profit: float
-    absolute_profit: float
+    relative_profit: Decimal
+    absolute_profit: Decimal
     trade_id: int
     order_id: int
 
@@ -173,6 +163,29 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
                  trades_profit=trades_profit)
 
 
+class _PositionItem:    # BUY orders only
+    def __init__(self, trade: Trade):
+        self.amount = trade.order.amount
+        self.quantity = trade.order.amount / trade.order.fill_price
+        self.fill_price = trade.order.fill_price
+        self.trading_fee = trade.order.trading_fee
+
+
+def _get_gain(trade: Trade) -> Decimal: # SELL orders only
+    total_amount = trade.order.amount * trade.order.fill_price
+    return total_amount - trade.order.trading_fee 
+
+
+def _estimate_trade_profit(trade: Trade, position: Decimal) -> TradeProfit:
+    trade_gain = _get_gain(trade)
+    absolute_profit = trade_gain - position
+    relative_profit = trade_gain/(position/100) - 100
+    return TradeProfit(absolute_profit=absolute_profit,
+                       relative_profit=relative_profit,
+                       trade_id=trade.trade_id, 
+                       order_id=trade.order.order_id)
+
+
 def _fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
     """FIFO Profit/Loss calculation algorithm."""
     trades_profit: t.List[TradeProfit] = []
@@ -180,7 +193,7 @@ def _fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
 
     for trade in trades:
         if trade.order.order_side is OrderSide.BUY:
-            position.appendleft(TradeData(trade))
+            position.appendleft(_PositionItem(trade))
         else:   # SELL
             position_quantity = sum(x.quantity for x in position)
             sell_quantity = trade.order.amount
@@ -190,19 +203,14 @@ def _fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
             while len(position) and position[0].quantity <= sell_quantity:
                 item = position.pop()
                 sell_quantity -= item.quantity 
-                position_price += item.quantity * item.fill_price + item.trading_fee
+                position_price += item.amount + item.trading_fee
             if sell_quantity:
-                position[0].quantity -= sell_quantity
+                item = position[0]
+                item.quantity -= sell_quantity
                 position_price += sell_quantity * item.fill_price + item.trading_fee
             # Now, knowing position_price and SELL total order price, 
             #   we can calculate profit and know whether it was win or lose
-            total_sell_price = trade.order.amount * trade.order.fill_price - trade.order.trading_fee 
-            absolute_profit = total_sell_price - position_price
-            relative_profit = total_sell_price/(position_price/100) - 100
-            trade_profit = TradeProfit(absolute_profit=absolute_profit,
-                                       relative_profit=relative_profit,
-                                       trade_id=trade.trade_id, 
-                                       order_id=trade.order.order_id)
+            trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
 
@@ -214,7 +222,7 @@ def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
 
     for trade in trades:
         if trade.order.order_side is OrderSide.BUY:
-            position.append(TradeData(trade))
+            position.append(_PositionItem(trade))
         else:   # SELL
             position_quantity = sum(x.quantity for x in position)
             sell_quantity = trade.order.amount
@@ -224,19 +232,14 @@ def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
             while len(position) and position[-1].quantity <= sell_quantity:
                 item = position.pop()
                 sell_quantity -= item.quantity
-                position_price += item.quantity * item.fill_price + item.trading_fee
+                position_price += item.amount + item.trading_fee
             if sell_quantity:
-                position[-1].quantity -= sell_quantity
+                item = position[-1]
+                item.quantity -= sell_quantity
                 position_price += sell_quantity * item.fill_price + item.trading_fee
             # Now, knowing position_price and SELL total order price, 
             #   we can calculate profit and know whether it was win or lose
-            total_sell_price = trade.order.amount * trade.order.fill_price - trade.order.trading_fee 
-            absolute_profit = total_sell_price - position_price
-            relative_profit = total_sell_price/(position_price/100) - 100
-            trade_profit = TradeProfit(absolute_profit=absolute_profit,
-                                       relative_profit=relative_profit,
-                                       trade_id=trade.trade_id, 
-                                       order_id=trade.order.order_id)
+            trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
 
@@ -248,7 +251,7 @@ def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
 
     for trade in trades:
         if trade.order.order_side is OrderSide.BUY:
-            position.append(TradeData(trade))
+            position.append(_PositionItem(trade))
         else:   # SELL
             position_quantity = sum(x.quantity for x in position)
             sell_quantity = trade.order.amount
@@ -260,7 +263,7 @@ def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                 
                 for position_trade in position.copy():
                     if position_trade.quantity < even:
-                        position_price += position_trade.quantity * position_trade.fill_price + position_trade.trading_fee
+                        position_price += position_trade.amount + position_trade.trading_fee
                         sell_quantity -= position_trade.quantity
                         position.remove(position_trade)
                         even = sell_quantity/len(position)
@@ -270,12 +273,6 @@ def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                         position_trade.quantity -= even
             # Now, knowing position_price and SELL total order price, 
             #   we can calculate profit and know whether it was win or lose
-            total_sell_price = trade.order.amount * trade.order.fill_price - trade.order.trading_fee 
-            absolute_profit = total_sell_price - position_price
-            relative_profit = total_sell_price/(position_price/100) - 100
-            trade_profit = TradeProfit(absolute_profit=absolute_profit,
-                                       relative_profit=relative_profit,
-                                       trade_id=trade.trade_id, 
-                                       order_id=trade.order.order_id)
+            trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
