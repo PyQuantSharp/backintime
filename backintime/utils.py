@@ -6,7 +6,7 @@ from .analyser.analyser import AnalyserBuffer
 from .analyser.oscillators.base import OscillatorParam
 from .analyser.oscillators.constants import CandleProperties
 from .data.data_provider import DataProviderFactory
-from .timeframes import Timeframes
+from .timeframes import Timeframes, get_timeframes_ratio
 from .trading_strategy import TradingStrategy
 
 
@@ -37,7 +37,7 @@ def _get_prefetch_count(base_timeframe: Timeframes,
             if param.quantity and param.quantity > max_quantity:
                 max_quantity = param.quantity
     # NOTE: there must be no remainder
-    timeframes_ratio = max_timeframe.value//base_timeframe.value
+    timeframes_ratio, _ = get_timeframes_ratio(max_timeframe, base_timeframe)
     quantity = timeframes_ratio * max_quantity
     quantity = max(DEFAULT_PREFETCH_COUNT, 
                    max_quantity*MAGIC_PREFETCH_CONSTANT)
@@ -61,7 +61,8 @@ def prefetch_values(strategy_t: t.Type[TradingStrategy],
     #
     analyser_buffer = AnalyserBuffer(since)
     for param in oscillator_params:
-        timeframes_ratio = param.timeframe.value / base_timeframe.value
+        timeframes_ratio, _ = get_timeframes_ratio(param.timeframe, 
+                                                   base_timeframe)
         quantity = int(required_count / timeframes_ratio)
         analyser_buffer.reserve(param.timeframe, 
                                 param.candle_property,
@@ -80,7 +81,8 @@ class IncompatibleTimeframe(Exception):
                  strategy_t: t.Type[TradingStrategy]):
         message = (f"Input candles timeframe is {timeframe} which can\'t be "
                    f"used to represent timeframes: {incompatibles} "
-                   f"(required for `{strategy_t.__name__})`")
+                   f"(required for `{strategy_t}` "
+                   f"aka `{strategy_t.get_title()}`)")
         super().__init__(message)
 
 
@@ -95,8 +97,8 @@ def validate_timeframes(strategy_t: t.Type[TradingStrategy],
     candle_timeframes = strategy_t.timeframes
     timeframes = oscillator_timeframes | candle_timeframes
     base_timeframe = data_provider_factory.timeframe
-
-    is_incompatible = lambda tf: tf.value % base_timeframe.value
+    # Timeframes are incompatible if there is non zero remainder
+    is_incompatible = lambda tf: get_timeframes_ratio(tf, base_timeframe)[1]
     incompatibles = list(filter(is_incompatible, timeframes))
     if incompatibles:
         raise IncompatibleTimeframe(base_timeframe, 

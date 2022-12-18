@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from itertools import islice
-from backintime.timeframes import Timeframes
+from backintime.timeframes import Timeframes, estimate_close_time
 from .oscillators.constants import CandleProperties
 from .oscillators.base import (
     Oscillator, 
@@ -12,15 +12,6 @@ from .oscillators.base import (
     OscillatorResultSequence, 
     MarketData
 )
-
-
-def _estimate_close_time(time: datetime, timeframe: Timeframes) -> datetime:
-    seconds_after_open = int(time.timestamp() % timeframe.value)
-    delta = timedelta(seconds=seconds_after_open, 
-                      milliseconds=time.microsecond/1000)
-    open_time = time - delta
-    return open_time + timedelta(seconds=timeframe.value - 1,
-                                 milliseconds=999)
 
 
 class AnalyserBuffer:
@@ -62,7 +53,7 @@ class AnalyserBuffer:
         for timeframe, series in self._data.items():
             if candle.close_time > series['end_time']:
                 # Push new values
-                close_time = _estimate_close_time(
+                close_time = estimate_close_time(
                                 candle.open_time, timeframe)
                 series['end_time'] = close_time
                 if CandleProperties.OPEN in series:

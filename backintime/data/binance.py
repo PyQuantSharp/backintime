@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from collections import abc
 from decimal import Decimal
 
-from backintime.timeframes import Timeframes
+from backintime.timeframes import Timeframes, estimate_close_time
 from .candle import Candle
 from .data_provider import (
     DataProvider, 
@@ -15,6 +15,10 @@ from .data_provider import (
 
 
 def _raise_for_status(response) -> None:
+    """
+    Wrap exception so that caller will know it is something
+    related to a data provider without knowing about `requests`.
+    """
     try:
         response.raise_for_status()
     except r.exceptions.HTTPError as e:
@@ -77,7 +81,10 @@ class BinanceCandles(DataProvider):
         """Return generator that will yield one candle at a time."""
         since = _to_ms(self._since)
         until = _to_ms(self._until)
-        end_time = until - self._timeframe.value*1000
+        end_time = estimate_close_time(self._until, self._timeframe, -1)
+        end_time = _to_ms(end_time)
+        #end_time = until - self._timeframe.value*1000
+
         max_per_request = 1000
         tf_ms = self._timeframe.value * 1000
         max_time_step = max_per_request * tf_ms
@@ -85,14 +92,15 @@ class BinanceCandles(DataProvider):
         params = {
             "symbol": self._symbol,
             "interval": self._interval,
-            "startTime": None,
-            "endTime": None,
-            "limit": max_per_request
+            "startTime": None,  # candle open >= startTime
+            "endTime": None,    # candle open <= endTime
+            "limit": max_per_request    # candles quantity <= limit
         }
 
         for start_time_ms in range(since, until, max_time_step):
             params["startTime"] = start_time_ms
             params["endTime"] = min(end_time, start_time_ms + max_time_step - tf_ms)
+
             res = r.get(self._url, params)
             _raise_for_status(res)
 
