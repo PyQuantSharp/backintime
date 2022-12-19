@@ -11,7 +11,6 @@ from .data.data_provider import (
 from .analyser.analyser import Analyser
 from .broker.base import BrokerException
 from .broker.broker import Broker
-from .broker.balance import InsufficientFunds
 from .broker.fees import FeesEstimator
 from .broker_proxy import BrokerProxy
 from .candles import Candles, CandlesBuffer
@@ -43,7 +42,8 @@ class Backtester:
                                           since)
         analyser = Analyser(analyser_buffer, self._strategy_t.oscillators)
         # Create shared buffer for `Candles`
-        candles_buffer = CandlesBuffer(since, self._strategy_t.timeframes)
+        timeframes = self._strategy_t.candle_timeframes
+        candles_buffer = CandlesBuffer(since, timeframes)
         candles = Candles(candles_buffer)
 
         strategy = strategy_t(broker_proxy, analyser, candles)
@@ -62,4 +62,5 @@ class Backtester:
         return BacktestingResult(self._strategy_t.get_title(),
                                  market_data,
                                  start_money,
-                                 broker.get_trades(), [])
+                                 broker.get_trades(),
+                                 broker.get_orders())

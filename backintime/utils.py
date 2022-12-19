@@ -94,7 +94,7 @@ def validate_timeframes(strategy_t: t.Type[TradingStrategy],
     """
     oscillator_params = _get_oscillators_params(strategy_t)
     oscillator_timeframes = { x.timeframe for x in oscillator_params }
-    candle_timeframes = strategy_t.timeframes
+    candle_timeframes = strategy_t.candle_timeframes
     timeframes = oscillator_timeframes | candle_timeframes
     base_timeframe = data_provider_factory.timeframe
     # Timeframes are incompatible if there is non zero remainder
