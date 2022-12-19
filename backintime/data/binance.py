@@ -83,7 +83,6 @@ class BinanceCandles(DataProvider):
         until = _to_ms(self._until)
         end_time = estimate_close_time(self._until, self._timeframe, -1)
         end_time = _to_ms(end_time)
-        #end_time = until - self._timeframe.value*1000
 
         max_per_request = 1000
         tf_ms = self._timeframe.value * 1000
