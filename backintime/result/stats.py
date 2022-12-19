@@ -14,7 +14,13 @@ class TradeProfit:
     order_id: int
 
 
-def _repr_profit(trade_profit, percents_first=True) -> str:
+def _repr_profit(trade_profit: TradeProfit, percents_first=True) -> str:
+    """
+    Utility to represent `TradeProfit` objects with control over
+    order of fields, e.g:
+        Best deal (relative change): +14% (+5k absoulte) Trade#10 Order#15
+        Best deal (absolute change): +20k (+10% relative) Trade#11 Order#20
+    """
     if trade_profit is None:
         return repr(None)
     if percents_first:
@@ -32,13 +38,13 @@ def _repr_profit(trade_profit, percents_first=True) -> str:
 @dataclass
 class Stats:
     algorithm: str
-    avg_profit: Decimal
-    win_rate: Decimal
-    profit_loss_ratio: Decimal
-    win_loss_ratio: Decimal
-    wins_count: int
-    losses_count: int
     trades_profit: list
+    avg_profit: t.Optional[Decimal]=Decimal('NaN')
+    win_rate: t.Optional[Decimal]=Decimal('NaN')
+    profit_loss_ratio: t.Optional[Decimal]=Decimal('NaN')
+    win_loss_ratio: t.Optional[Decimal]=Decimal('NaN')
+    wins_count: t.Optional[int]=0
+    losses_count: t.Optional[int]=0
     best_deal_relative: t.Optional[TradeProfit]=None
     best_deal_absolute: t.Optional[TradeProfit]=None
     worst_deal_relative: t.Optional[TradeProfit]=None
@@ -96,16 +102,8 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
         raise UnexpectedProfitLossAlgorithm(algorithm, supported)
 
     if not len(trades_profit):
-        return Stats(algorithm = algorithm,
-                     avg_profit = Decimal('NaN'),
-                     win_rate = Decimal('NaN'),
-                     profit_loss_ratio = Decimal('NaN'),
-                     win_loss_ratio = Decimal('NaN'),
-                     wins_count = 0,
-                     losses_count = 0,
-                     trades_profit = trades_profit)
-    # Best deal (relative change): +14% (+5k absoulte) Trade#10 Order#15
-    # Best deal (absolute change): +20k (+10% relative) Trade#11 Order#20
+        return Stats(algorithm=algorithm, trades_profit=trades_profit)
+
     wins_count = 0
     losses_count = 0
     profit_sum = 0
@@ -208,8 +206,7 @@ def _fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                 item = position[0]
                 item.quantity -= sell_quantity
                 position_price += sell_quantity * item.fill_price + item.trading_fee
-            # Now, knowing position_price and SELL total order price, 
-            #   we can calculate profit and know whether it was win or lose
+
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
@@ -237,8 +234,7 @@ def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                 item = position[-1]
                 item.quantity -= sell_quantity
                 position_price += sell_quantity * item.fill_price + item.trading_fee
-            # Now, knowing position_price and SELL total order price, 
-            #   we can calculate profit and know whether it was win or lose
+
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
@@ -271,8 +267,7 @@ def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                         position_price += even * position_trade.fill_price + position_trade.trading_fee
                         sell_quantity -= even
                         position_trade.quantity -= even
-            # Now, knowing position_price and SELL total order price, 
-            #   we can calculate profit and know whether it was win or lose
+
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
