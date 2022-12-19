@@ -18,36 +18,49 @@ def _candles_equal(first_candle: Candle, second_candle: Candle) -> bool:
 
 def test_binance_candles_order():
     """Check whether yield binance candles in consistent order."""
+    # Missing candles in 2018
+    missings = (
+        (
+            datetime.fromisoformat("2018-02-08 00:00+00:00"), 
+            datetime.fromisoformat("2018-02-09 08:00+00:00")
+        ),
+        (
+            datetime.fromisoformat("2018-06-26 00:00+00:00"), 
+            datetime.fromisoformat("2018-06-26 12:00+00:00")
+        ),
+        (
+            datetime.fromisoformat("2018-07-04 00:00+00:00"), 
+            datetime.fromisoformat("2018-07-04 08:00+00:00")
+        ),
+        (
+            datetime.fromisoformat("2018-11-14 00:00+00:00"), 
+            datetime.fromisoformat("2018-11-14 08:00+00:00")
+        ),
+    )
+
     since = datetime.fromisoformat("2018-01-01 00:00+00:00")
     until = datetime.fromisoformat("2019-01-01 08:00+00:00")
     candles = BinanceCandles("BTCUSDT", tf.H4, since, until)
     prev_open: t.Optional[datetime] = None
+    missing_idx = 0
 
     for candle in candles:
         if prev_open:
-            assert candle.open_time >= prev_open, f"{candle.open_time} follows {prev_open}"
-        prev_open = candle.open_time
-    assert prev_open is not None
-
-
-def test_binance_candles_has_missing():
-    """There were several missing candles in 2018-2019."""
-    since = datetime.fromisoformat("2018-01-01 00:00+00:00")
-    until = datetime.fromisoformat("2019-01-01 08:00+00:00")
-    candles = BinanceCandles("BTCUSDT", tf.H4, since, until)
-    prev_open: t.Optional[datetime] = None
-    has_missing = False
-
-    for candle in candles:
-        if prev_open:
+            # Assert timedelta is at least of one timeframe
+            assert candle.open_time >= prev_open
+            # Detect missing candles
             delta = candle.open_time - prev_open
             delta = delta.total_seconds()
             if delta > tf.H4.value:
-                print(f"NOTE: Missing candle after: {prev_open}. "
-                      f"Next open: {candle.open_time}")
+                # Assert it's not an error, but really missed candle
+                assert missings[missing_idx][0] == prev_open
+                assert missings[missing_idx][1] == candle.open_time
                 has_missing = True
+                missing_idx += 1
         prev_open = candle.open_time
-    assert has_missing
+
+    assert prev_open is not None and has_missing \
+            and missing_idx == len(missings)
 
 
 def test_first_candle_open_time():
