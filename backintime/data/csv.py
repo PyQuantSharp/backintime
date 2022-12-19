@@ -29,6 +29,12 @@ class CSVCandlesSchema:
     volume: t.Optional[int]=None
 
 
+class DateNotFound(DataProviderError):
+    def __init__(self, date: datetime, filename: str):
+        message = f"Date {date} was not found in {filename}"
+        super().__init__(message)
+
+
 class InconsistentData(DataProviderError):
     def __init__(self, open_time: datetime, prev_open_time: datetime):
         message = f"Candle {open_time} follows {prev_open_time}"
@@ -102,8 +108,18 @@ class CSVCandles(DataProvider):
         csvrows = _skip_headers(csvrows)
         csvrows = _skip_to_date(csvrows, self._schema.open_time, 
                                 self._since, self._date_parser)
+        csvrows = iter(csvrows)
+        prev_open: t.Optional[datetime] = None
+        # Check whether date present
+        try:
+            row = next(csvrows)
+        except StopIteration:
+            raise DateNotFound(self._since, self._filename)
+        else:
+            candle = _parse_candle(row, self._schema, self._date_parser)
+            prev_open = candle.open_time
+            yield candle
 
-        prev_open = self._since - timedelta(seconds=self._timeframe.value)
         for row in csvrows:
             candle = _parse_candle(row, self._schema, self._date_parser)
             if candle.open_time >= self._until:
@@ -151,7 +167,7 @@ class CSVCandlesFactory(DataProviderFactory):
                  date_parser=lambda x: pd.to_datetime(x, utc=True)):
         self.filename = filename
         self.symbol = symbol
-        self.timeframe = timeframe
+        self.tf = timeframe
         self.schema = schema
         self.delimiter = delimiter
         self.quotechar = quotechar
@@ -159,7 +175,7 @@ class CSVCandlesFactory(DataProviderFactory):
 
     @property
     def timeframe(self) -> Timeframes:
-        return self.timeframe
+        return self.tf
 
     def create(self, 
                since: datetime, 
