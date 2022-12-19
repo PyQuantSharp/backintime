@@ -1,28 +1,30 @@
-from backintime import (
-    Backtester,
-    BinanceApiCandles,
-    TradingStrategy,
-    Timeframes,
-    CandleProperties
-)
-from backintime.oscillators.macd import macd
+from datetime import datetime
+from backintime.trading_strategy import TradingStrategy
+from backintime.timeframes import Timeframes as tf
+from backintime.analyser.oscillators.macd import macd
+from backintime.data.binance import BinanceCandlesFactory
+from backintime.backtester import Backtester
 
 
 class MacdStrategy(TradingStrategy):
+    title = "Example MACD Strategy v0"
+    oscillators = { macd(tf.H1) }
 
-    using_oscillators = ( macd(Timeframes.H4), )
-
-    def __call__(self):
-        macd = self.oscillators.get('MACD_H4')
-
+    def tick(self):
+        macd = self.analyser.get('macd_h1')
         if not self.position and macd.crossover_up():
-            self._buy()
-
+            self.buy()
         elif self.position and macd.crossover_down():
-            self._sell()
+            self.sell()
 
 
-feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
+feed = BinanceCandlesFactory('BTCUSDT', tf.M1)
+since = datetime.fromisoformat("2020-01-01 00:00+00:00")
+until = datetime.fromisoformat("2021-01-01 00:00+00:00")
+
 backtester = Backtester(MacdStrategy, feed)
-backtester.run_test('2020-01-01', 10000)
-print(backtester.results())
+result = backtester.run(10_000, since, until, 
+                        maker_fee='0.005', taker_fee='0.005')
+print(result)
+print(result.get_stats('FIFO'))
+result.export()
