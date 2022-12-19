@@ -78,15 +78,15 @@ class Balance(AbstractBalance):
         self._available_crypto_balance += amount
 
     def __repr__(self) -> str:
-        fiat_balance = round(self._fiat_balance, 2)
-        available_fiat_balance = round(self._available_fiat_balance, 2)
-        crypto_balance = round(self._crypto_balance, 2)
-        available_crypto_balance = round(self._available_crypto_balance, 2)
+        fiat_balance = self._fiat_balance
+        available_fiat = self._available_fiat_balance
+        crypto_balance = self._crypto_balance
+        available_crypto = self._available_crypto_balance
 
-        return (f"Balance(fiat_balance={fiat_balance}, "
-                f"available_fiat_balance={available_fiat_balance}, "
-                f"crypto_balance={crypto_balance}, "
-                f"available_crypto_balance={available_crypto_balance})")
+        return (f"Balance(fiat_balance={fiat_balance:.2f}, "
+                f"available_fiat_balance={available_fiat:.2f}, "
+                f"crypto_balance={crypto_balance:.2f}, "
+                f"available_crypto_balance={available_crypto:.2f})")
 
 
 class BalanceInfo(AbstractBalance):
@@ -116,3 +116,14 @@ class BalanceInfo(AbstractBalance):
     def crypto_balance(self) -> Decimal:
         """Get crypto balance."""
         return self._data.crypto_balance
+
+    def __repr__(self) -> str:
+        fiat_balance = self.fiat_balance
+        available_fiat = self.available_fiat_balance
+        crypto_balance = self.crypto_balance
+        available_crypto = self.available_crypto_balance
+
+        return (f"BalanceInfo(fiat_balance={fiat_balance:.2f}, "
+                f"available_fiat_balance={available_fiat:.2f}, "
+                f"crypto_balance={crypto_balance:.2f}, "
+                f"available_crypto_balance={available_crypto:.2f})")

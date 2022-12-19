@@ -22,7 +22,7 @@ class OrdersRepository(abc.Iterable):
         self._linked_strategy_orders: t.Dict[int, StrategyOrders] = {}
 
     def get_order(self, order_id: int) -> t.Optional[Order]:
-        order = self._orders_map.get(order_id)
+        return self._orders_map.get(order_id)
 
     def get_market_orders(self):
         for order_id in self._market_orders.copy():
@@ -41,7 +41,7 @@ class OrdersRepository(abc.Iterable):
 
     def add_market_order(self, order: MarketOrder) -> int:
         order_id = next(self._orders_counter)
-        self._market_orders.append(order_id)
+        self._market_orders.add(order_id)
         self._orders_map[order_id] = order
         return order_id 
 

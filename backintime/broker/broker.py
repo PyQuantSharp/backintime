@@ -11,6 +11,10 @@ from .base import (
     LimitOrderInfo,
     StrategyOrders,
     StrategyOrderInfo,
+    validate_market_order,
+    validate_limit_order,
+    validate_take_profit_factory,
+    validate_stop_loss_factory,
     BrokerException,
     OrderSubmissionError,
     OrderCancellationError,
@@ -36,7 +40,7 @@ from .orders import (
 
 _match_predicates = (
     lambda price, candle: price == candle.open,
-    lambda price, candle: price >= candle.low and price <= candle.high
+    lambda price, candle: price >= candle.low and price <= candle.high,
     lambda price, candle: price == candle.close
 )
 
@@ -73,7 +77,7 @@ class Broker(AbstractBroker):
     - Take Profit/Stop Loss orders: 
         The activation conditions are essentially the same
         as for limit orders, but the conditions from the list 
-        are applied to order's `target_price`. 
+        are applied to order's `trigger_price`. 
         When a TP/SL order is triggered, it will be treated
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
@@ -98,7 +102,8 @@ class Broker(AbstractBroker):
 
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""
-        return OrderInfo(order_id, order) for order_id, order in self._orders
+        for order_id, order in self._orders:
+            yield OrderInfo(order_id, order) 
 
     def get_orders(self) -> t.List[OrderInfo]:
         """Get orders list."""
@@ -120,7 +125,8 @@ class Broker(AbstractBroker):
         balance = self._balance.fiat_balance
         self._trades.append(Trade(trade_id, order_info, balance))
 
-    def get_balance(self) -> BalanceInfo:
+    @property
+    def balance(self) -> BalanceInfo:
         """Get balance info."""
         return self._balance_info
 
@@ -154,6 +160,7 @@ class Broker(AbstractBroker):
                 order_factory: MarketOrderFactory) -> OrderInfo:
         """Submit market order."""
         order = order_factory.create(self._current_time)
+        validate_market_order(order)
         self._hold_funds(order)
         order_id = self._orders.add_market_order(order)
         return OrderInfo(order_id, order)
@@ -163,6 +170,7 @@ class Broker(AbstractBroker):
                 order_factory: LimitOrderFactory) -> LimitOrderInfo:
         """Submit limit order."""
         order = order_factory.create(self._current_time)
+        validate_limit_order(order)
         self._hold_funds(order)
         order_id = self._orders.add_limit_order(order)
         strategy_orders = self._orders.get_linked_orders(order_id)
@@ -170,18 +178,24 @@ class Broker(AbstractBroker):
 
     def submit_take_profit_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
         """Submit Take Profit order."""
         order = order_factory.create(self._current_time)
+        validate_take_profit_factory(order_factory)
+        order.side = order_side
         self._hold_position(order)
         order_id = self._orders.add_take_profit_order(order)
         return StrategyOrderInfo(order_id, order)
 
     def submit_stop_loss_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
         """Submit Stop Loss order."""
         order = order_factory.create(self._current_time)
+        validate_stop_loss_factory(order_factory)
+        order.side = order_side
         self._hold_position(order)
         order_id = self._orders.add_stop_loss_order(order)
         return StrategyOrderInfo(order_id, order)
@@ -249,7 +263,7 @@ class Broker(AbstractBroker):
         """
         if order.side == OrderSide.BUY:
             total_price = self._get_total_price(order)
-            if total_amount <= self._balance.available_fiat_balance:
+            if total_price <= self._balance.available_fiat_balance:
                 # If total amount fits, hold funds and 
                 # make it shared for other TP/SL
                 self._balance.hold_fiat(total_price)
@@ -382,14 +396,14 @@ class Broker(AbstractBroker):
         """Review whether orders can be executed."""
         self._current_time = candle.close_time
         # Execute all market orders
-        self._execute_market_orders()
+        self._execute_market_orders(candle.open)
         # Review orders with limited price 
         for match_predicate in _match_predicates:
             for order_id, order in self._orders.get_limit_orders():
                 # Review strategy orders
                 if isinstance(order, StrategyOrder):
                     if order.status is OrderStatus.CREATED:
-                        if match_predicate(order.target_price, candle):
+                        if match_predicate(order.trigger_price, candle):
                             self._activate_strategy_order(order_id, order)
                     elif order.status is OrderStatus.ACTIVATED:
                         if match_predicate(order.order_price, candle):

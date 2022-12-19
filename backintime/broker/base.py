@@ -47,6 +47,79 @@ class OrderCancellationError(BrokerException):
 
 
 # Implementation for orders & trades
+def validate_market_order(order: MarketOrder) -> None:
+    if order.amount <= 0:
+        raise InvalidOrderData(f"[MarketOrder]: amount must be > 0")
+
+
+def validate_take_profit_factory(factory: TakeProfitFactory) -> None:
+    message = ''
+    if factory.amount <= 0:
+        message += f"amount must be > 0. "
+    if factory.trigger_price <= 0:
+        message += f"trigger price must be > 0. "
+    if factory.order_price and factory.order_price <= 0:
+        message += f"order price must be > 0. "
+    if message:
+        raise InvalidOrderData(f"[TakeProfitOrder]: {message}")
+
+
+def validate_stop_loss_factory(factory: StopLossFactory) -> None:
+    message = ''
+    if factory.amount <= 0:
+        message += f"amount must be > 0. "
+    if factory.trigger_price <= 0:
+        message += f"trigger price must be > 0. "
+    if factory.order_price and factory.order_price <= 0:
+        message += f"order price must be > 0. "
+    if message:
+        raise InvalidOrderData(f"[StopLossOrder]: {message}")
+
+
+def validate_limit_order(order: LimitOrder) -> None:
+    message = ''
+    if order.amount <= 0:
+        message += f"amount must be > 0. "
+    if order.order_price <= 0:
+        message += f"order price must be > 0. "
+    if order.take_profit_factory:
+        try:
+            validate_take_profit_factory(order.take_profit_factory)
+        except InvalidOrderData as e:
+            message += str(e)
+    if order.stop_loss_factory:
+        try:
+            validate_stop_loss_factory(order.stop_loss_factory)
+        except InvalidOrderData as e:
+            message += str(e)
+    if message:
+        raise InvalidOrderData(f"[LimitOrder]: {message}")
+
+
+def validate_take_profit(order: TakeProfitOrder) -> None:
+    message = ''
+    if order.amount <= 0:
+        message += f"amount must be > 0. "
+    if order.trigger_price <= 0:
+        message += f"trigger price must be > 0. "
+    if order.order_price and order.order_price <= 0:
+        message += f"order price must be > 0. "
+    if message:
+        raise InvalidOrderData(f"[TakeProfitOrder]: {message}")
+
+
+def validate_stop_loss(order: StopLossOrder) -> None:
+    message = ''
+    if order.amount <= 0:
+        message += f"amount must be > 0. "
+    if order.trigger_price <= 0:
+        message += f"trigger price must be > 0. "
+    if order.order_price and order.order_price <= 0:
+        message += f"order price must be > 0. "
+    if message:
+        raise InvalidOrderData(f"[StopLossOrder]: {message}")
+
+
 class OrderInfo:
     """
     Wrapper around `Order` that provides a read-only view
@@ -201,8 +274,9 @@ class AbstractBroker(ABC):
     Broker provides orders management in a simulated
     market environment.
     """
+    @property
     @abstractmethod
-    def get_balance(self) -> AbstractBalance:
+    def balance(self) -> AbstractBalance:
         """Get balance info."""
         pass
 
@@ -238,6 +312,7 @@ class AbstractBroker(ABC):
     @abstractmethod
     def submit_take_profit_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
         """Submit Take Profit order."""
         pass
@@ -245,6 +320,7 @@ class AbstractBroker(ABC):
     @abstractmethod
     def submit_stop_loss_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
         """Submit Stop Loss order."""
         pass
