@@ -1,12 +1,11 @@
 import typing as t
-from .broker.broker import (
-    AbstractBroker, 
-    Broker, 
-    BalanceInfo, 
-    Trade,
+from .broker.base import (
+    Trade, 
     OrderInfo, 
     LimitOrderInfo, 
-    StrategyOrderInfo
+    StrategyOrderInfo,
+    AbstractBroker,
+    AbstractBalance
 )
 from .broker.orders import (
     OrderFactory,
@@ -18,15 +17,37 @@ from .broker.orders import (
 
 
 class BrokerProxy(AbstractBroker):
-    def __init__(self, broker: Broker):
+    def __init__(self, broker: AbstractBroker):
         self._broker = broker
 
-    def get_balance(self) -> BalanceInfo:
+    @property
+    def balance(self) -> AbstractBalance:
         """Get balance info."""
-        return self._broker.get_balance()
+        return self._broker.balance
+
+    def iter_orders(self) -> t.Iterator[OrderInfo]:
+        """Get orders iterator."""
+        return self._broker.iter_orders()
 
     def iter_trades(self) -> t.Iterator[Trade]:
+        """Get trades iterator."""
         return self._broker.iter_trades()
+
+    def get_orders(self) -> t.List[OrderInfo]:
+        """Get orders list."""
+        return self._broker.get_orders()
+
+    def get_trades(self) -> t.List[Trade]:
+        """Get trades list."""
+        return self._broker.get_trades()
+
+    def get_max_fiat_for_maker(self) -> Decimal:
+        """Get max available fiat for a 'maker' order."""
+        return self._broker.get_max_fiat_for_maker()
+
+    def get_max_fiat_for_taker(self) -> Decimal:
+        """Get max available fiat for a 'taker' order."""
+        return self._broker.get_max_fiat_for_taker()
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""
@@ -46,15 +67,17 @@ class BrokerProxy(AbstractBroker):
 
     def submit_take_profit_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
         """Submit Take Profit order."""
-        return self._broker.submit_take_profit_order(order_factory)
+        return self._broker.submit_take_profit_order(order_side, order_factory)
 
     def submit_stop_loss_order(
                 self, 
+                order_side: OrderSide,
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
         """Submit Stop Loss order."""
-        return self._broker.submit_stop_loss_order(order_factory)
+        return self._broker.submit_stop_loss_order(order_side, order_factory)
 
     def cancel_order(self, order_id: int) -> None:
         """Cancel order by id."""
