@@ -1,4 +1,5 @@
 import typing as t
+from decimal import Decimal
 from .broker.base import (
     Trade, 
     OrderInfo, 
@@ -8,6 +9,7 @@ from .broker.base import (
     AbstractBalance
 )
 from .broker.orders import (
+    OrderSide,
     OrderFactory,
     MarketOrderFactory,
     LimitOrderFactory,
@@ -33,12 +35,12 @@ class BrokerProxy(AbstractBroker):
         """Get trades iterator."""
         return self._broker.iter_trades()
 
-    def get_orders(self) -> t.List[OrderInfo]:
-        """Get orders list."""
+    def get_orders(self) -> t.Sequence[OrderInfo]:
+        """Get sequence of orders."""
         return self._broker.get_orders()
 
-    def get_trades(self) -> t.List[Trade]:
-        """Get trades list."""
+    def get_trades(self) -> t.Sequence[Trade]:
+        """Get sequence of trades."""
         return self._broker.get_trades()
 
     def get_max_fiat_for_maker(self) -> Decimal:
