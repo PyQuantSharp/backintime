@@ -10,19 +10,9 @@ from .candle import Candle
 from .data_provider import (
     DataProvider, 
     DataProviderFactory, 
-    DataProviderError
+    DataProviderError,
+    ParsingError
 )
-
-
-def _raise_for_status(response) -> None:
-    """
-    Wrap exception so that caller will know it is something
-    related to a data provider without knowing about `requests`.
-    """
-    try:
-        response.raise_for_status()
-    except r.exceptions.HTTPError as e:
-        raise DataProviderError(repr(e))
 
 
 def _to_ms(time: datetime) -> int:
@@ -37,13 +27,17 @@ def _parse_time(millis_timestamp: int) -> datetime:
 
 
 def _parse_candle(candle: list) -> Candle:
-    return Candle(open_time=_parse_time(candle[0]),
-                  open=Decimal(candle[1]),
-                  high=Decimal(candle[2]),
-                  low=Decimal(candle[3]),
-                  close=Decimal(candle[4]),
-                  volume=Decimal(candle[5]),
-                  close_time=_parse_time(candle[6]))
+    """Parse candle from a sequence"""
+    try:
+        return Candle(open_time=_parse_time(candle[0]),
+                      open=Decimal(candle[1]),
+                      high=Decimal(candle[2]),
+                      low=Decimal(candle[3]),
+                      close=Decimal(candle[4]),
+                      volume=Decimal(candle[5]),
+                      close_time=_parse_time(candle[6]))
+    except Exception as e:
+        raise ParsingError(str(e))
 
 
 def _utcnow() -> datetime:
@@ -99,9 +93,16 @@ class BinanceCandles(DataProvider):
         for start_time_ms in range(since, until, max_time_step):
             params["startTime"] = start_time_ms
             params["endTime"] = min(end_time, start_time_ms + max_time_step - tf_ms)
-
-            res = r.get(self._url, params)
-            _raise_for_status(res)
+            
+            try:
+                res = r.get(self._url, params)
+                res.raise_for_status()
+            # Wrap exceptions so that caller will know it is something
+            # related to a data provider without knowing about `requests`.
+            except r.exceptions.ConnectionError as e:
+                raise DataProviderError("Failed to connect")
+            except r.exceptions.HTTPError as e:
+                raise DataProviderError(str(e))
 
             for item in res.json():
                 yield _parse_candle(item)

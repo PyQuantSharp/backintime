@@ -8,6 +8,7 @@ from .candle import Candle
 
 
 class DataProvider(abc.Iterable):
+    """Provides candles in historical order."""
     @property
     @abstractmethod
     def symbol(self) -> str:
@@ -40,5 +41,10 @@ class DataProviderFactory(ABC):
 
 
 class DataProviderError(Exception):
+    """Base class for all data related errors."""
     pass
 
+
+class ParsingError(DataProviderError):
+    """Failed to parse candle from source."""
+    pass

@@ -13,7 +13,8 @@ from .data_provider import (
     Candle,
     DataProvider, 
     DataProviderFactory, 
-    DataProviderError
+    DataProviderError,
+    ParsingError
 )
 
 
@@ -47,13 +48,17 @@ def _parse_volume(candle, schema: CSVCandlesSchema) -> Decimal:
 
 
 def _parse_candle(candle, schema: CSVCandlesSchema, date_parser) -> Candle:
-    return Candle(open_time=date_parser(candle[schema.open_time]),
-                  open=Decimal(candle[schema.open]),
-                  high=Decimal(candle[schema.high]),
-                  low=Decimal(candle[schema.low]),
-                  close=Decimal(candle[schema.close]),
-                  volume=_parse_volume(candle, schema),
-                  close_time=date_parser(candle[schema.close_time]))
+    """Parse candle from a sequence of strings."""
+    try:
+        return Candle(open_time=date_parser(candle[schema.open_time]),
+                      open=Decimal(candle[schema.open]),
+                      high=Decimal(candle[schema.high]),
+                      low=Decimal(candle[schema.low]),
+                      close=Decimal(candle[schema.close]),
+                      volume=_parse_volume(candle, schema),
+                      close_time=date_parser(candle[schema.close_time]))
+    except Exception as e:
+        raise ParsingError(str(e))
 
 
 def _skip_to_date(rows: t.Iterable[t.Iterable[str]], 
