@@ -1,6 +1,7 @@
 import typing as t
 from datetime import datetime
 from decimal import Decimal
+from backintime.data.data_provider import DataProviderError
 from backintime.data.binance import BinanceCandles, Candle
 from backintime.timeframes import Timeframes as tf
 
@@ -105,3 +106,19 @@ def test_candle_data_matches_expected():
 
     candle = next(iter(candles))
     assert _candles_equal(expected_candle, candle)
+
+
+def test_invalid_symbol_will_rase():
+    """
+    Ensure that passing invalid symbol will raise `DataProviderError`.
+    """
+    since = datetime.fromisoformat("2022-12-01 00:00+00:00")
+    until = datetime.fromisoformat("2022-12-01 01:00+00:00")
+    candles = BinanceCandles("--", tf.H1, since, until)
+    data_provider_error_raised = False
+
+    try:
+        next(iter(candles))
+    except DataProviderError:
+        data_provider_error_raised = True
+    assert data_provider_error_raised
