@@ -148,7 +148,7 @@ class CSVCandles(DataProvider):
         for row in csvrows:
             candle = _parse_candle(row, self._schema, self._date_parser)
             if candle.open_time >= self._until:
-                raise StopIteration()
+                break
             # Check data consistency
             delta = candle.open_time - prev_open
             delta = delta.total_seconds()
