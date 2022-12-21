@@ -255,14 +255,28 @@ def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
             position_price = 0
 
             while sell_quantity:
+                '''
+                NOTE: the following line never raises 
+                `ZeroDivisionError`, since by the time when 
+                len(position) is 0, `sell_quantity` is 0 as well, 
+                which is exactly the condition to break `while` loop.
+
+                This is implied by the `_validate_sell_amount`: 
+                when all BUYs are consumed and removed, there is 
+                nothing to sell remains.
+
+                So, this line won't execute with dangerous 
+                values either way.
+                '''
                 even = sell_quantity/len(position) 
                 
                 for position_trade in position.copy():
-                    if position_trade.quantity < even:
+                    if position_trade.quantity <= even:
                         position_price += position_trade.amount + position_trade.trading_fee
                         sell_quantity -= position_trade.quantity
                         position.remove(position_trade)
-                        even = sell_quantity/len(position)
+                        if len(position):   # prevent zero division
+                            even = sell_quantity/len(position)
                     else:
                         position_price += even * position_trade.fill_price + position_trade.trading_fee
                         sell_quantity -= even
