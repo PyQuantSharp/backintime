@@ -1,6 +1,13 @@
 import typing as t
 from decimal import Decimal   # https://docs.python.org/3/library/decimal.html
-from .base import AbstractBalance, InsufficientFunds
+from .base import AbstractBalance
+from .base import InsufficientFunds as BaseInsufficientFunds
+
+
+class InsufficientFunds(BaseInsufficientFunds):
+    def __init__(self, required: Decimal, available: Decimal):
+        message = f"Need {required:.4f} but only have {available:.4f}"
+        super().__init__(message)
 
 
 class Balance(AbstractBalance):
@@ -39,7 +46,7 @@ class Balance(AbstractBalance):
         and decrease it.
         """
         if amount > self._available_fiat_balance:
-            raise InsufficientFunds()
+            raise InsufficientFunds(amount, self._available_fiat_balance)
         self._available_fiat_balance -= amount
 
     def hold_crypto(self, amount: Decimal) -> None:
@@ -48,7 +55,7 @@ class Balance(AbstractBalance):
         and decrease it.
         """
         if amount > self._available_crypto_balance:
-            raise InsufficientFunds()
+            raise InsufficientFunds(amount, self._available_crypto_balance)
         self._available_crypto_balance -= amount
 
     def release_fiat(self, amount: Decimal) -> None:
