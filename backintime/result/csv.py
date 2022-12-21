@@ -8,8 +8,8 @@ from backintime.broker_proxy import Trade, OrderInfo
 from .stats import Stats
 
 
-def decimal_to_str(value: Decimal) -> str:
-    return "{0:.4f}".format(value)
+def decimal_to_str(value: t.Optional[Decimal]) -> str:
+    return "{0:.4f}".format(value) if value else str(Decimal('NaN'))
 
 
 def datetime_to_str(value: datetime) -> str:
@@ -256,8 +256,10 @@ class CSVTradesExporter:
 
     def _get_field(self, trade: Trade, field: str) -> t.Any:
         """Get trade attribute value by name."""
-        return getattr(trade, field, None) or getattr(trade.order, field)
-
+        try:
+            return getattr(trade, field) 
+        except AttributeError:
+            return getattr(trade.order, field)
 
 # Helpers
 def export_stats(filename: str,
