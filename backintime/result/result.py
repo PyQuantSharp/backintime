@@ -212,9 +212,9 @@ class BacktestingResult:
                       f"trading pair: {self._symbol}\n\n")
 
         content = (f"Strategy title: {self.strategy_title}\n"
-                   f"Start balance:\t\t{self.start_balance}\n"
-                   f"Result balance: \t{self.result_balance}\n"
-                   f"Total gain:\t\t{self.total_gain}\n"
+                   f"Start balance:\t\t{self.start_balance:.2f}\n"
+                   f"Result balance: \t{self.result_balance:.2f}\n"
+                   f"Total gain:\t\t{self.total_gain:.2f}\n"
                    f"Total gain percents:\t{self.total_gain_percents:.2f}%\n"
                    f"Trades count:\t{self.trades_count}\n"
                    f"Orders count:\t{self.orders_count}\n")
