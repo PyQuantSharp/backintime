@@ -118,7 +118,7 @@ class Analyser:
         }
 
     def get(self, oscillator_name: str) -> OscillatorResultSequence:
-        """Get a list of oscillator values."""
+        """Get sequence of oscillator values."""
         oscillator = self._oscillators.get(oscillator_name)
         if not oscillator:
             raise OscillatorNotFound(oscillator_name)
