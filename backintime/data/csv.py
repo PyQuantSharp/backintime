@@ -107,6 +107,26 @@ class CSVCandles(DataProvider):
         self._until = until
         self._date_parser = date_parser
 
+    @property
+    def title(self) -> str:
+        return f"local CSV file {self._filename}"
+
+    @property
+    def symbol(self) -> str:
+        return self._symbol
+
+    @property
+    def timeframe(self) -> Timeframes:
+        return self._timeframe
+    
+    @property
+    def since(self) -> datetime:
+        return self._since
+    
+    @property
+    def until(self) -> datetime:
+        return self._until
+
     def __iter__(self) -> t.Iterator[Candle]:
         """Return generator that will yield one candle at a time."""
         csvrows = _csvrows(self._filename, self._delimiter, self._quotechar)
@@ -136,18 +156,6 @@ class CSVCandles(DataProvider):
                 raise InconsistentData(candle.open_time, prev_open)
             prev_open = candle.open_time
             yield candle
-
-    @property
-    def title(self) -> str:
-        return f"local CSV file {self._filename}"
-
-    @property
-    def symbol(self) -> str:
-        return self._symbol
-
-    @property
-    def timeframe(self) -> Timeframes:
-        return self._timeframe
 
 
 def _utcnow() -> datetime:

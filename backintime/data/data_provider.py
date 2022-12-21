@@ -11,7 +11,7 @@ class DataProvider(abc.Iterable):
     """Provides candles in historical order."""
     @property
     @abstractmethod
-    def symbol(self) -> str:
+    def title(self) -> str:
         pass
 
     @property
@@ -21,7 +21,17 @@ class DataProvider(abc.Iterable):
 
     @property
     @abstractmethod
-    def title(self) -> str:
+    def symbol(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def since(self) -> datetime:
+        pass
+
+    @property
+    @abstractmethod
+    def until(self) -> datetime:
         pass
 
     @abstractmethod

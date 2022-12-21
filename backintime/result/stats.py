@@ -16,8 +16,8 @@ class TradeProfit:
 
 def _repr_profit(trade_profit: TradeProfit, percents_first=True) -> str:
     """
-    Utility to represent `TradeProfit` objects with control over
-    order of fields, e.g:
+    Utility to represent `TradeProfit` object with control over
+    the order of fields, for instance:
         Best deal (relative change): +14% (+5k absoulte) Trade#10 Order#15
         Best deal (absolute change): +20k (+10% relative) Trade#11 Order#20
     """
@@ -56,13 +56,13 @@ class Stats:
         worst_deal_rel = _repr_profit(self.worst_deal_relative)
         worst_deal_abs = _repr_profit(self.worst_deal_absolute, False)
 
-        return (f"Profit/Loss algorithm: {self.algorithm}\n"
-                f"Avg. profit: {self.avg_profit:.2f}%\n"
-                f"Profit/Loss ratio: {self.profit_loss_ratio:.2f}\n"
-                f"Win rate: {self.win_rate:.2f}%\n"
-                f"Win/Loss ratio: {self.win_loss_ratio}\n"
-                f"Wins count: {self.wins_count}\n"
-                f"Losses count: {self.losses_count}\n"
+        return (f"Profit/Loss algorithm: {self.algorithm}\n\n"
+                f"Avg. profit:\t{self.avg_profit:.2f}%\n"
+                f"Profit/Loss:\t{self.profit_loss_ratio:.2f}\n"
+                f"Win rate:\t{self.win_rate:.2f}%\n"
+                f"Win/Loss:\t{self.win_loss_ratio}\n"
+                f"Wins count:\t{self.wins_count}\n"
+                f"Losses count:\t{self.losses_count}\n\n"
                 f"Best deal (relative change): {best_deal_rel}\n"
                 f"Best deal (absolute change): {best_deal_abs}\n"
                 f"Worst deal (relative change): {worst_deal_rel}\n"

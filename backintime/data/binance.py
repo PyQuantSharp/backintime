@@ -71,6 +71,26 @@ class BinanceCandles(DataProvider):
         self._until=until
         self._interval = self._intervals[timeframe]
 
+    @property
+    def title(self) -> str:
+        return "Binance klines API v3"
+
+    @property
+    def symbol(self) -> str:
+        return self._symbol
+
+    @property
+    def timeframe(self) -> Timeframes:
+        return self._timeframe
+    
+    @property
+    def since(self) -> datetime:
+        return self._since
+    
+    @property
+    def until(self) -> datetime:
+        return self._until
+
     def __iter__(self) -> t.Iterator[Candle]:
         """Return generator that will yield one candle at a time."""
         since = _to_ms(self._since)
@@ -106,18 +126,6 @@ class BinanceCandles(DataProvider):
 
             for item in res.json():
                 yield _parse_candle(item)
-
-    @property
-    def title(self) -> str:
-        return "Binance klines API v3"
-
-    @property
-    def symbol(self) -> str:
-        return self._symbol
-
-    @property
-    def timeframe(self) -> Timeframes:
-        return self._timeframe
 
 
 class BinanceCandlesFactory(DataProviderFactory):
