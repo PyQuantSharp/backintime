@@ -1,4 +1,5 @@
 import typing as t
+import logging
 from itertools import chain
 from datetime import datetime, timedelta
 
@@ -8,6 +9,9 @@ from .analyser.oscillators.constants import CandleProperties
 from .data.data_provider import DataProviderFactory
 from .timeframes import Timeframes, get_timeframes_ratio
 from .trading_strategy import TradingStrategy
+
+
+logger = logging.getLogger("backintime")
 
 
 def _get_oscillators_params(
@@ -54,11 +58,12 @@ def prefetch_values(strategy_t: t.Type[TradingStrategy],
     oscillator_params = _get_oscillators_params(strategy_t)
     required_count = _get_prefetch_count(base_timeframe, oscillator_params)
     since = until - timedelta(seconds=required_count * base_timeframe.value)
-    #
-    print(f"required count: {required_count}")
-    print(f"since: {since}")
-    print(f"until: {until}")
-    #
+    # TODO: implement optional prefetching
+    logger.info("Start prefetching...")
+    logger.info(f"required count: {required_count}")
+    logger.info(f"since: {since}")
+    logger.info(f"until: {until}")
+
     analyser_buffer = AnalyserBuffer(since)
     for param in oscillator_params:
         timeframes_ratio, _ = get_timeframes_ratio(param.timeframe, 
@@ -71,6 +76,7 @@ def prefetch_values(strategy_t: t.Type[TradingStrategy],
     data_provider = data_provider_factory.create(since, until)
     for candle in data_provider:
         analyser_buffer.update(candle)
+    logger.info("Prefetching is done")
     return analyser_buffer
 
 

@@ -19,6 +19,7 @@ from .data.data_provider import (
 )
 
 
+logging.basicConfig()
 logger = logging.getLogger("backintime")
 
 
@@ -52,6 +53,7 @@ class Backtester:
 
         strategy = self._strategy_t(broker_proxy, analyser, candles)
         market_data = self._data_provider_factory.create(since, until)
+        logger.info("Start backtesting...")
 
         try:
             for candle in market_data:
@@ -63,8 +65,9 @@ class Backtester:
         except (BrokerException, DataProviderError) as e:
             # These are more or less expected, so don't raise
             name = e.__class__.__name__
-            logger.error(f"{name}: {str(e)}\nStop backtesting.")
+            logger.error(f"{name}: {str(e)}\nStop backtesting...")
 
+        logger.info("Backtesting is done")
         return BacktestingResult(self._strategy_t.get_title(),
                                  market_data,
                                  start_money,
