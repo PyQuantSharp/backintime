@@ -18,6 +18,12 @@ class Candle:
     is_closed:  t.Optional[bool]=False
 
 
+class CandleNotFound(Exception):
+    def __init__(self, timeframe: Timeframes):
+        message = f"Candle {timeframe} was not found in buffer."
+        super().__init__(message)
+
+
 def _create_placeholder_candle(open_time: datetime, 
                                timeframe: Timeframes) -> Candle:
     close_time = estimate_close_time(open_time, timeframe)
@@ -34,7 +40,10 @@ class CandlesBuffer:
         }
 
     def get(self, timeframe: Timeframes) -> Candle:
-        return self._data[timeframe]
+        try:
+            return self._data[timeframe]
+        except KeyError:
+            raise CandleNotFound(timeframe)
 
     def update(self, candle: InputCandle) -> None:
         for timeframe in self._data:
