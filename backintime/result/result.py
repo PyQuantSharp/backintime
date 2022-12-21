@@ -78,14 +78,15 @@ class BacktestingStats:
         date = datetime.strftime(self._date, "%Y-%m-%d %H:%M:%S")
         header_message = f"Backtesting stats {date}"
         header = f"\n{'-' * 16}* {header_message} *{'-' * 16}\n\n"
+        footer = f"\n{'-' * 73}\n"
         data_block = (f"{self._data_title} on {str(self._data_timeframe)}\n"
                       f"since: {self._data_since}\n"
                       f"until: {self._data_until}\n"
-                      f"traiding pair: {self._symbol}\n\n")
+                      f"trading pair: {self._symbol}\n\n")
 
         return (f"{header}{data_block}"
                 f"Strategy title: {self._strategy_title}\n"
-                f"{repr(self._stats)}\n{'-' * 73}\n")
+                f"{repr(self._stats)}{footer}")
 
 
 class BacktestingResult:
@@ -204,6 +205,7 @@ class BacktestingResult:
         date = datetime.strftime(self._date, "%Y-%m-%d %H:%M:%S")
         header_message = f"Backtesting result {date}"
         header = f"\n{'-' * 16}* {header_message} *{'-' * 16}\n\n"
+        footer = f"\n{'-' * 73}\n"
         data_block = (f"{self._data_title} on {str(self._data_timeframe)}\n"
                       f"since: {self._data_since}\n"
                       f"until: {self._data_until}\n"
@@ -217,4 +219,4 @@ class BacktestingResult:
                    f"Trades count:\t{self.trades_count}\n"
                    f"Orders count:\t{self.orders_count}\n")
 
-        return f"{header}{data_block}{content}\n{'-' * 73}\n"
+        return f"{header}{data_block}{content}{footer}"
