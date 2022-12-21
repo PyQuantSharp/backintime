@@ -109,7 +109,7 @@ class Broker(AbstractBroker):
 
     def get_orders(self) -> t.List[OrderInfo]:
         """Get orders list."""
-        return list(self.iter_orders)
+        return list(self.iter_orders())
 
     def iter_trades(self) -> t.Iterator[Trade]:
         """Get trades iterator."""
