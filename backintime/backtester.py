@@ -1,21 +1,25 @@
 import typing as t
-
+import logging
 from datetime import datetime
 from decimal import Decimal
+
 from .trading_strategy import TradingStrategy
+from .analyser.analyser import Analyser, OscillatorNotFound
+from .broker.base import BrokerException
+from .broker.broker import Broker
+from .broker.fees import FeesEstimator
+from .broker_proxy import BrokerProxy
+from .candles import Candles, CandlesBuffer, CandleNotFound
+from .result.result import BacktestingResult
+from .utils import validate_timeframes, prefetch_values
 from .data.data_provider import (
     DataProvider, 
     DataProviderFactory,
     DataProviderError
 )
-from .analyser.analyser import Analyser
-from .broker.base import BrokerException
-from .broker.broker import Broker
-from .broker.fees import FeesEstimator
-from .broker_proxy import BrokerProxy
-from .candles import Candles, CandlesBuffer
-from .result import BacktestingResult
-from .utils import validate_timeframes, prefetch_values
+
+
+logger = logging.getLogger("backintime")
 
 
 class Backtester:
@@ -46,7 +50,7 @@ class Backtester:
         candles_buffer = CandlesBuffer(since, timeframes)
         candles = Candles(candles_buffer)
 
-        strategy = strategy_t(broker_proxy, analyser, candles)
+        strategy = self._strategy_t(broker_proxy, analyser, candles)
         market_data = self._data_provider_factory.create(since, until)
 
         try:
@@ -55,12 +59,15 @@ class Backtester:
                 candles_buffer.update(candle)
                 analyser_buffer.update(candle)
                 strategy.tick()
-        except (BrokerException, DataProviderError):
-            # These are more or less expected, so don't terminate
-            pass    # TODO: logging here
+
+        except (BrokerException, DataProviderError) as e:
+            # These are more or less expected, so don't raise
+            name = e.__class__.__name__
+            logger.error(f"{name}: {str(e)}\nStop backtesting.")
 
         return BacktestingResult(self._strategy_t.get_title(),
                                  market_data,
                                  start_money,
+                                 broker.balance.fiat_balance,
                                  broker.get_trades(),
                                  broker.get_orders())
