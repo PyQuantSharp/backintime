@@ -26,6 +26,9 @@ class Timeframes(Enum):
     # week
     W1 = 604800
 
+    def __str__(self) -> str:
+        return self.name
+
 
 def get_timeframes_ratio(first_timeframe: Timeframes, 
                          second_timeframe: Timeframes) -> t.Tuple[int, int]:
