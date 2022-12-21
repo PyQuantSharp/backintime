@@ -38,8 +38,9 @@ class Backtester:
             maker_fee: str,
             taker_fee: str) -> BacktestingResult:
         # Create shared `Broker` for `BrokerProxy`
+        start_money = Decimal(start_money)
         fees = FeesEstimator(Decimal(maker_fee), Decimal(taker_fee))
-        broker = Broker(Decimal(start_money), fees)
+        broker = Broker(start_money, fees)
         broker_proxy = BrokerProxy(broker)
         # Create shared buffer for `Analyser`
         analyser_buffer = prefetch_values(self._strategy_t, 
