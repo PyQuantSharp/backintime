@@ -119,10 +119,9 @@ class CSVOrdersExporter:
         "order_price": "Order Price",
         "status": "Status",
         "date_updated": "Date Updated",
-        "fill_price": "Fill Price",
-        "result_balance": "Result Balance"
+        "fill_price": "Fill Price"
     }
-    
+
     _field_serializers = {
         "amount": decimal_to_str,
         "fill_price": decimal_to_str,
@@ -140,6 +139,9 @@ class CSVOrdersExporter:
         Export orders to CSV file. 
         Won't take effect if `orders` is an empty sequence.
         """
+        if not len(orders):
+            return
+
         fields = self._orders_fields
         fields = [ x for x in fields if not x in exclude_fields ]
 
@@ -219,6 +221,9 @@ class CSVTradesExporter:
         Export trades to CSV file. 
         Won't take effect if `trades` is an empty sequence.
         """
+        if not len(trades): 
+            return
+
         fields = self._trades_fields
         fields = [ x for x in fields if not x in exclude_fields ]
 
