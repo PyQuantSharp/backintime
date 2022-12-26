@@ -445,7 +445,10 @@ class Broker(AbstractBroker):
             if isinstance(order, MarketOrder):
                 self._execute_market_order(order_id, order, market_price)
             elif isinstance(order, StrategyOrder):
-                # NOTE: tmp edit
+                '''
+                NOTE: since we're iterating over a copy, cancelled orders
+                are still in the collection.
+                '''
                 if order.status is not OrderStatus.SYS_CANCELLED:
                     self._execute_strategy_market_order(order_id, 
                                                         order, market_price)
