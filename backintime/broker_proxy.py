@@ -27,6 +27,16 @@ class BrokerProxy(AbstractBroker):
         """Get balance info."""
         return self._broker.balance
 
+    @property
+    def max_fiat_for_maker(self) -> Decimal:
+        """Get max available fiat for a 'maker' order."""
+        return self._broker.max_fiat_for_maker
+
+    @property
+    def max_fiat_for_taker(self) -> Decimal:
+        """Get max available fiat for a 'taker' order."""
+        return self._broker.max_fiat_for_taker
+
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""
         return self._broker.iter_orders()
@@ -42,14 +52,6 @@ class BrokerProxy(AbstractBroker):
     def get_trades(self) -> t.Sequence[Trade]:
         """Get sequence of trades."""
         return self._broker.get_trades()
-
-    def get_max_fiat_for_maker(self) -> Decimal:
-        """Get max available fiat for a 'maker' order."""
-        return self._broker.get_max_fiat_for_maker()
-
-    def get_max_fiat_for_taker(self) -> Decimal:
-        """Get max available fiat for a 'taker' order."""
-        return self._broker.get_max_fiat_for_taker()
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""

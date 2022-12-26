@@ -1,12 +1,12 @@
 import typing as t
-from decimal import Decimal   # https://docs.python.org/3/library/decimal.html
+from decimal import Decimal, ROUND_HALF_UP   # https://docs.python.org/3/library/decimal.html
 from .base import AbstractBalance
 from .base import InsufficientFunds as BaseInsufficientFunds
 
 
 class InsufficientFunds(BaseInsufficientFunds):
     def __init__(self, required: Decimal, available: Decimal):
-        message = f"Need {required:.4f} but only have {available:.4f}"
+        message = f"Need {required:.8f} but only have {available:.8f}"
         super().__init__(message)
 
 
@@ -14,11 +14,16 @@ class Balance(AbstractBalance):
     """Default balance implementation for default broker."""
     def __init__(self, 
                  fiat_balance: Decimal, 
-                 crypto_balance: t.Optional[Decimal] = Decimal(0)):
+                 crypto_balance: t.Optional[Decimal] = Decimal(0),
+                 min_fiat: t.Optional[Decimal]=Decimal('0.01'),
+                 min_crypto: t.Optional[Decimal]=Decimal('0.00000001')):
         self._fiat_balance = fiat_balance
         self._available_fiat_balance = fiat_balance
         self._crypto_balance = crypto_balance
         self._available_crypto_balance = crypto_balance
+        # Used for rounding
+        self._min_fiat = min_fiat
+        self._min_crypto = min_crypto
 
     @property
     def available_fiat_balance(self) -> Decimal:
@@ -45,6 +50,7 @@ class Balance(AbstractBalance):
         Ensure there are enough fiat available for trading and
         and decrease it.
         """
+        amount = amount.quantize(self._min_fiat, ROUND_HALF_UP)
         if amount > self._available_fiat_balance:
             raise InsufficientFunds(amount, self._available_fiat_balance)
         self._available_fiat_balance -= amount
@@ -54,33 +60,40 @@ class Balance(AbstractBalance):
         Ensure there are enough crypto available for trading and
         and decrease it.
         """
+        amount = amount.quantize(self._min_crypto, ROUND_HALF_UP)
         if amount > self._available_crypto_balance:
             raise InsufficientFunds(amount, self._available_crypto_balance)
         self._available_crypto_balance -= amount
 
     def release_fiat(self, amount: Decimal) -> None:
         """Increase fiat available for trading."""
+        amount = amount.quantize(self._min_fiat, ROUND_HALF_UP)
         self._available_fiat_balance += amount
 
     def release_crypto(self, amount: Decimal) ->  None:
         """Increase crypto available for trading."""
+        amount = amount.quantize(self._min_crypto, ROUND_HALF_UP)
         self._available_crypto_balance += amount
 
     def withdraw_fiat(self, amount: Decimal) -> None:
         """Decrease fiat balance."""
+        amount = amount.quantize(self._min_fiat, ROUND_HALF_UP)
         self._fiat_balance -= amount
 
     def withdraw_crypto(self, amount: Decimal) -> None:
         """Decrease crypto balance."""
+        amount = amount.quantize(self._min_crypto, ROUND_HALF_UP)
         self._crypto_balance -= amount
 
     def deposit_fiat(self, amount: Decimal) -> None:
         """Increase fiat balance and the amount available for trading."""
+        amount = amount.quantize(self._min_fiat, ROUND_HALF_UP)
         self._fiat_balance += amount
         self._available_fiat_balance += amount
 
     def deposit_crypto(self, amount: Decimal) -> None:
         """Increase crypto balance and the amount available for trading."""
+        amount = amount.quantize(self._min_crypto, ROUND_HALF_UP)
         self._crypto_balance += amount
         self._available_crypto_balance += amount
 
@@ -92,8 +105,8 @@ class Balance(AbstractBalance):
 
         return (f"Balance(fiat_balance={fiat_balance:.2f}, "
                 f"available_fiat_balance={available_fiat:.2f}, "
-                f"crypto_balance={crypto_balance:.2f}, "
-                f"available_crypto_balance={available_crypto:.2f})")
+                f"crypto_balance={crypto_balance:.8f}, "
+                f"available_crypto_balance={available_crypto:.8f})")
 
 
 class BalanceInfo(AbstractBalance):
@@ -132,5 +145,5 @@ class BalanceInfo(AbstractBalance):
 
         return (f"BalanceInfo(fiat_balance={fiat_balance:.2f}, "
                 f"available_fiat_balance={available_fiat:.2f}, "
-                f"crypto_balance={crypto_balance:.2f}, "
-                f"available_crypto_balance={available_crypto:.2f})")
+                f"crypto_balance={crypto_balance:.8f}, "
+                f"available_crypto_balance={available_crypto:.8f})")

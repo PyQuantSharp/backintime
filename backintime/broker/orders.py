@@ -17,7 +17,7 @@ All fields are public. It is up to a broker implementation to set
 import typing as t
 from abc import ABC, abstractmethod
 from enum import Enum
-from decimal import Decimal   # https://docs.python.org/3/library/decimal.html
+from decimal import Decimal, ROUND_FLOOR   # https://docs.python.org/3/library/decimal.html
 from datetime import datetime
 
 
@@ -59,17 +59,42 @@ class Order:
                  side: OrderSide, 
                  order_type: OrderType,
                  amount: Decimal, 
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime,
                  order_price: t.Optional[Decimal]=None):
         self.side = side
         self.order_type = order_type
-        self.amount = amount
+        self.amount = amount.quantize(min_fiat, ROUND_FLOOR) \
+                        if side is OrderSide.BUY \
+                        else amount.quantize(min_crypto, ROUND_FLOOR)
         self.order_price = order_price
         self.date_created = date_created
         self.date_updated = date_created
         self.status = OrderStatus.CREATED
-        self.fill_price: t.Optional[Decimal] = None
-        self.trading_fee: t.Optional[Decimal] = None
+        self._fill_price: t.Optional[Decimal] = None
+        self._trading_fee: t.Optional[Decimal] = None
+        # Used for rounding
+        self.min_fiat = min_fiat
+        self.min_crypto = min_crypto
+
+    @property
+    def fill_price(self) -> t.Optional[Decimal]:
+        return self._fill_price
+
+    @fill_price.setter
+    def fill_price(self, fill_price: Decimal) -> None:
+        fill_price = fill_price.quantize(self.min_fiat)
+        self._fill_price = fill_price
+
+    @property
+    def trading_fee(self) -> t.Optional[Decimal]:
+        return self._trading_fee
+
+    @trading_fee.setter
+    def trading_fee(self, trading_fee: Decimal) -> None:
+        trading_fee = trading_fee.quantize(self.min_fiat)
+        self._trading_fee = trading_fee
 
 # Strategy orders have trigger price
 class StrategyOrder(Order):
@@ -78,11 +103,14 @@ class StrategyOrder(Order):
                  order_type: OrderType,
                  amount: Decimal, 
                  trigger_price: Decimal,
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime,
                  order_price: t.Optional[Decimal]=None):
         self.trigger_price = trigger_price
         self.date_activated: t.Optional[datetime] = None
-        super().__init__(side, order_type, amount, 
+        super().__init__(side, order_type, amount,
+                         min_fiat, min_crypto,
                          date_created, order_price)
 
 
@@ -91,12 +119,15 @@ class TakeProfitOrder(StrategyOrder):
                  side: OrderSide,
                  amount: Decimal,
                  trigger_price: Decimal,
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime,
                  order_price: t.Optional[Decimal]=None):
         order_type = OrderType.TAKE_PROFIT_LIMIT if order_price \
                         else OrderType.TAKE_PROFIT
         super().__init__(side, order_type, amount, 
-                         trigger_price, date_created, order_price)
+                         trigger_price, min_fiat, min_crypto,
+                         date_created, order_price)
 
 
 class StopLossOrder(StrategyOrder):
@@ -104,17 +135,23 @@ class StopLossOrder(StrategyOrder):
                  side: OrderSide,
                  amount: Decimal,
                  trigger_price: Decimal,
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime,
                  order_price: t.Optional[Decimal]=None):
         order_type = OrderType.STOP_LOSS_LIMIT if order_price \
                         else OrderType.STOP_LOSS
         super().__init__(side, order_type, amount, 
-                         trigger_price, date_created, order_price)
+                         trigger_price, min_fiat, min_crypto, 
+                         date_created, order_price)
 
 
 class OrderFactory(ABC):
     @abstractmethod
-    def create(self, date_created: datetime) -> Order:
+    def create(self, 
+               date_created: datetime, 
+               min_fiat: Decimal, 
+               min_crypto: Decimal) -> Order:
         pass
 
 
@@ -128,8 +165,12 @@ class TakeProfitFactory(OrderFactory):
         self.order_price = order_price
         self.side: t.Optional[OrderSide] = None  # Shouldn't be set by user
 
-    def create(self, date_created: datetime) -> TakeProfitOrder:
-        return TakeProfitOrder(self.side, self.amount, self.trigger_price,
+    def create(self, 
+               date_created: datetime,
+               min_fiat: Decimal,
+               min_crypto: Decimal) -> TakeProfitOrder:
+        return TakeProfitOrder(self.side, self.amount, 
+                               self.trigger_price, min_fiat, min_crypto,
                                date_created, self.order_price)
 
 
@@ -143,17 +184,24 @@ class StopLossFactory(OrderFactory):
         self.order_price = order_price
         self.side: t.Optional[OrderSide] = None # Shouldn't be set by user
 
-    def create(self, date_created: datetime) -> StopLossOrder:
-        return StopLossOrder(self.side, self.amount, self.trigger_price,
+    def create(self, 
+               date_created: datetime,
+               min_fiat: Decimal,
+               min_crypto: Decimal) -> StopLossOrder:
+        return StopLossOrder(self.side, self.amount, 
+                             self.trigger_price, min_fiat, min_crypto,
                              date_created, self.order_price)
 
 
 class MarketOrder(Order):
     def __init__(self, 
                  side: OrderSide, 
-                 amount: Decimal, 
+                 amount: Decimal,
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime):
-        super().__init__(side, OrderType.MARKET, amount, date_created)
+        super().__init__(side, OrderType.MARKET, amount, 
+                         min_fiat, min_crypto, date_created)
 
 # Limit orders have optional TP/SL
 class LimitOrder(Order):
@@ -161,6 +209,8 @@ class LimitOrder(Order):
                  side: OrderSide,
                  amount: Decimal,
                  order_price: Decimal,
+                 min_fiat: Decimal,
+                 min_crypto: Decimal,
                  date_created: datetime,
                  take_profit_factory: t.Optional[TakeProfitFactory] = None,
                  stop_loss_factory: t.Optional[StopLossFactory] = None):
@@ -170,7 +220,8 @@ class LimitOrder(Order):
         self.take_profit: t.Optional[TakeProfitOrder] = None 
         self.stop_loss: t.Optional[StopLossOrder] = None
         super().__init__(side, OrderType.LIMIT, 
-                         amount, date_created, order_price)
+                         amount, min_fiat, min_crypto, 
+                         date_created, order_price)
 
 
 class MarketOrderFactory(OrderFactory):
@@ -180,8 +231,12 @@ class MarketOrderFactory(OrderFactory):
         self.side = side
         self.amount = amount
 
-    def create(self, date_created: datetime) -> MarketOrder:
-        return MarketOrder(self.side, self.amount, date_created)
+    def create(self, 
+               date_created: datetime,
+               min_fiat: Decimal,
+               min_crypto: Decimal) -> MarketOrder:
+        return MarketOrder(self.side, self.amount, 
+                           min_fiat, min_crypto, date_created)
 
 
 class LimitOrderFactory(OrderFactory):
@@ -197,8 +252,13 @@ class LimitOrderFactory(OrderFactory):
         self.take_profit_factory = take_profit_factory
         self.stop_loss_factory = stop_loss_factory
 
-    def create(self, date_created: datetime) -> LimitOrder:
+    def create(self, 
+               date_created: datetime,
+               min_fiat: Decimal,
+               min_crypto: Decimal) -> LimitOrder:
         return LimitOrder(self.side, self.amount, 
-                          self.order_price, date_created,
+                          self.order_price,
+                          min_fiat, min_crypto,
+                          date_created,
                           self.take_profit_factory, 
                           self.stop_loss_factory)

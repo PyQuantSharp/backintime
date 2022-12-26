@@ -39,7 +39,7 @@ class TradingStrategy(ABC):
 
     def buy(self, amount: t.Optional[Decimal]=None) -> OrderInfo:
         """Shortcut for submitting market buy order."""
-        order_amount = amount or self.broker.get_max_fiat_for_taker()
+        order_amount = amount or self.broker.max_fiat_for_taker
         order = MarketOrderFactory(OrderSide.BUY, order_amount)
         return self.broker.submit_market_order(order)
 
@@ -55,7 +55,7 @@ class TradingStrategy(ABC):
                   stop_loss_factory: t.Optional[StopLossFactory]=None,
                   amount: t.Optional[Decimal]=None) -> LimitOrderInfo:
         """Shortcut for submitting limit buy order."""
-        order_amount = amount or self.broker.get_max_fiat_for_maker()
+        order_amount = amount or self.broker.max_fiat_for_maker
         order = LimitOrderFactory(OrderSide.BUY,
                                   order_amount,
                                   order_price,
@@ -69,7 +69,7 @@ class TradingStrategy(ABC):
                    stop_loss_factory: t.Optional[StopLossFactory]=None,
                    amount: t.Optional[Decimal]=None) -> LimitOrderInfo:
         """Shortcut for submitting limit sell order."""
-        order_amount = amount or self.broker.position()
+        order_amount = amount or self.position
         order = LimitOrderFactory(OrderSide.SELL,
                                   order_amount,
                                   order_price,

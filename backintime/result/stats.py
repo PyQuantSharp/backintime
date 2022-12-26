@@ -164,7 +164,9 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
 class _PositionItem:    # BUY orders only
     def __init__(self, trade: Trade):
         self.amount = trade.order.amount
-        self.quantity = trade.order.amount / trade.order.fill_price
+        # TODO: consider passing quantize precision to ctor
+        quantity = trade.order.amount / trade.order.fill_price
+        self.quantity = quantity.quantize(Decimal('0.00000001'))
         self.fill_price = trade.order.fill_price
         self.trading_fee = trade.order.trading_fee
 

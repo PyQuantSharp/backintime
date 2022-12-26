@@ -207,14 +207,36 @@ class AbstractBroker(ABC):
         """Get balance info."""
         pass
 
+    @property
     @abstractmethod
-    def get_max_fiat_for_taker(self) -> Decimal:
+    def max_fiat_for_taker(self) -> Decimal:
         """Get max available fiat for a 'taker' order."""
         pass
 
+    @property
     @abstractmethod
-    def get_max_fiat_for_maker(self) -> Decimal:
+    def max_fiat_for_maker(self) -> Decimal:
         """Get max available fiat for a 'maker' order."""
+        pass
+
+    @abstractmethod
+    def iter_orders(self) -> t.Iterator[OrderInfo]:
+        """Get orders iterator."""
+        pass
+
+    @abstractmethod
+    def iter_trades(self) -> t.Iterator[Trade]:
+        """Get trades iterator."""
+        pass
+
+    @abstractmethod
+    def get_orders(self) -> t.Sequence[OrderInfo]:
+        """Get orders sequence."""
+        pass
+
+    @abstractmethod
+    def get_trades(self) -> t.Sequence[Trade]:
+        """Get trades sequence."""
         pass
 
     @abstractmethod
@@ -255,24 +277,4 @@ class AbstractBroker(ABC):
     @abstractmethod
     def cancel_order(self, order_id: int) -> None:
         """Cancel order by id."""
-        pass
-    
-    @abstractmethod
-    def iter_orders(self) -> t.Iterator[OrderInfo]:
-        """Get orders iterator."""
-        pass
-
-    @abstractmethod
-    def iter_trades(self) -> t.Iterator[Trade]:
-        """Get trades iterator."""
-        pass
-
-    @abstractmethod
-    def get_orders(self) -> t.Sequence[OrderInfo]:
-        """Get orders sequence."""
-        pass
-
-    @abstractmethod
-    def get_trades(self) -> t.Sequence[Trade]:
-        """Get trades sequence."""
         pass

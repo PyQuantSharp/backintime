@@ -1,7 +1,7 @@
 import typing as t
 from datetime import datetime
 from itertools import count
-from decimal import Decimal    # https://docs.python.org/3/library/decimal.html
+from decimal import Decimal, ROUND_FLOOR    # https://docs.python.org/3/library/decimal.html
 from .balance import Balance, BalanceInfo
 from .fees import FeesEstimator
 from .repo import OrdersRepository
@@ -84,10 +84,16 @@ class Broker(AbstractBroker):
         as a market or limit order, depending on whether 
         `order_price` is set for the order. 
     """
-    def __init__(self, start_money: Decimal, fees: FeesEstimator):
+    def __init__(self, 
+                 start_money: Decimal, 
+                 fees: FeesEstimator,
+                 min_fiat: t.Optional[Decimal]=Decimal('0.01'),
+                 min_crypto: t.Optional[Decimal]=Decimal('0.00000001')):
         assert start_money > 0, "Start money must be greater than zero"
         self._fees = fees
-        self._balance = Balance(fiat_balance=start_money)
+        self._balance = Balance(fiat_balance=start_money,
+                                min_fiat=min_fiat,
+                                min_crypto=min_crypto)
         self._balance_info = BalanceInfo(self._balance)
         self._orders = OrdersRepository()
         # Shared positions for TP/SL orders
@@ -101,6 +107,28 @@ class Broker(AbstractBroker):
         self._trades: t.List[Trade] = []
         # Close time of the current candle
         self._current_time: t.Optional[datetime] = None
+        # Used for rounding
+        self._min_fiat = min_fiat
+        self._min_crypto = min_crypto
+
+    @property
+    def balance(self) -> BalanceInfo:
+        """Get balance info."""
+        return self._balance_info
+
+    @property
+    def max_fiat_for_taker(self) -> Decimal:
+        """Get max available fiat for a 'taker' order."""
+        available_fiat = self._balance.available_fiat_balance
+        available_fiat = available_fiat / (1 + self._fees.taker_fee)
+        return available_fiat.quantize(self._min_fiat, ROUND_FLOOR)
+
+    @property
+    def max_fiat_for_maker(self) -> Decimal:
+        """Get max available fiat for a 'maker' order"""
+        available_fiat = self._balance.available_fiat_balance
+        available_fiat = available_fiat / (1 + self._fees.maker_fee)
+        return available_fiat.quantize(self._min_fiat, ROUND_FLOOR)
 
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""
@@ -118,29 +146,6 @@ class Broker(AbstractBroker):
     def get_trades(self) -> t.List[Trade]:
         """Get trades list."""
         return list(self._trades)
-
-    def _add_trade(self, order_id: int, order: Order) -> None:
-        """Add new trade."""
-        # TODO: consider concrete trades with OrderInfo subclasses
-        trade_id = next(self._trades_counter)
-        order_info = OrderInfo(order_id, order)
-        balance = self._balance.fiat_balance
-        self._trades.append(Trade(trade_id, order_info, balance))
-
-    @property
-    def balance(self) -> BalanceInfo:
-        """Get balance info."""
-        return self._balance_info
-
-    def get_max_fiat_for_taker(self) -> Decimal:
-        """Get max available fiat for a 'taker' order."""
-        available_fiat = self._balance.available_fiat_balance
-        return available_fiat / (1 + self._fees.taker_fee)
-
-    def get_max_fiat_for_maker(self) -> Decimal:
-        """Get max available fiat for a 'maker' order"""
-        available_fiat = self._balance.available_fiat_balance
-        return available_fiat / (1 + self._fees.maker_fee)
 
     def submit_order(self, order_factory: OrderFactory) -> OrderInfo:
         """Submit order for execution."""
@@ -161,7 +166,9 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: MarketOrderFactory) -> OrderInfo:
         """Submit market order."""
-        order = order_factory.create(self._current_time)
+        order = order_factory.create(self._current_time,
+                                     self._min_fiat,
+                                     self._min_crypto)
         validate_market_order(order)
         self._hold_funds(order)
         order_id = self._orders.add_market_order(order)
@@ -171,7 +178,9 @@ class Broker(AbstractBroker):
                 self, 
                 order_factory: LimitOrderFactory) -> LimitOrderInfo:
         """Submit limit order."""
-        order = order_factory.create(self._current_time)
+        order = order_factory.create(self._current_time,
+                                     self._min_fiat,
+                                     self._min_crypto)
         validate_limit_order(order)
         self._hold_funds(order)
         order_id = self._orders.add_limit_order(order)
@@ -183,7 +192,9 @@ class Broker(AbstractBroker):
                 order_side: OrderSide,
                 order_factory: TakeProfitFactory) -> StrategyOrderInfo:
         """Submit Take Profit order."""
-        order = order_factory.create(self._current_time)
+        order = order_factory.create(self._current_time,
+                                     self._min_fiat,
+                                     self._min_crypto)
         validate_take_profit_factory(order_factory)
         order.side = order_side
         self._hold_position(order)
@@ -195,7 +206,9 @@ class Broker(AbstractBroker):
                 order_side: OrderSide,
                 order_factory: StopLossFactory) -> StrategyOrderInfo:
         """Submit Stop Loss order."""
-        order = order_factory.create(self._current_time)
+        order = order_factory.create(self._current_time,
+                                     self._min_fiat,
+                                     self._min_crypto)
         validate_stop_loss_factory(order_factory)
         order.side = order_side
         self._hold_position(order)
@@ -206,7 +219,9 @@ class Broker(AbstractBroker):
                                    take_profit_factory: TakeProfitFactory,
                                    limit_order_id: int) -> None:
         """Submit new linked TP from limit order."""
-        order = take_profit_factory.create(self._current_time)
+        order = take_profit_factory.create(self._current_time,
+                                           self._min_fiat,
+                                           self._min_crypto)
         self._hold_position(order)
         self._orders.add_linked_take_profit_order(order, limit_order_id)
 
@@ -214,7 +229,9 @@ class Broker(AbstractBroker):
                                  stop_loss_factory: StopLossFactory, 
                                  limit_order_id: int) -> None:
         """Submit new linked SL from limit order."""
-        order = stop_loss_factory.create(self._current_time)
+        order = stop_loss_factory.create(self._current_time,
+                                         self._min_fiat,
+                                         self._min_crypto)
         self._hold_position(order)
         self._orders.add_linked_stop_loss_order(order, limit_order_id)
 
@@ -243,6 +260,14 @@ class Broker(AbstractBroker):
             self._release_position(order)
             self._orders.remove_stop_loss_order(order_id)
         order.status = OrderStatus.CANCELLED
+
+    def _add_trade(self, order_id: int, order: Order) -> None:
+        """Add new trade."""
+        # TODO: consider concrete trades with OrderInfo subclasses
+        trade_id = next(self._trades_counter)
+        order_info = OrderInfo(order_id, order)
+        balance = self._balance.fiat_balance
+        self._trades.append(Trade(trade_id, order_info, balance))
 
     def _hold_funds(self, order: t.Union[MarketOrder, LimitOrder]) -> None:
         """
@@ -420,7 +445,10 @@ class Broker(AbstractBroker):
             if isinstance(order, MarketOrder):
                 self._execute_market_order(order_id, order, market_price)
             elif isinstance(order, StrategyOrder):
-                self._execute_strategy_market_order(order_id, order, market_price)
+                # NOTE: tmp edit
+                if order.status is not OrderStatus.SYS_CANCELLED:
+                    self._execute_strategy_market_order(order_id, 
+                                                        order, market_price)
         self._orders.remove_market_orders()
 
     def _execute_market_order(self, 
