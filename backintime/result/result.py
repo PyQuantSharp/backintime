@@ -1,3 +1,4 @@
+import re
 import typing as t
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -198,6 +199,7 @@ class BacktestingResult:
         """
         strategy_title = self._strategy_title.lower()
         strategy_title = '_'.join(strategy_title.split())
+        strategy_title = re.sub(r'[\\, /]', '_', strategy_title)
         date_postfix = datetime.strftime(self._date, "%Y%m%d%H%M%S")
         return f"{strategy_title}_{entity}_{date_postfix}.csv"
 

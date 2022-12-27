@@ -60,7 +60,7 @@ class Stats:
                 f"Avg. profit:\t{self.avg_profit:.2f}%\n"
                 f"Profit/Loss:\t{self.profit_loss_ratio:.2f}\n"
                 f"Win rate:\t{self.win_rate:.2f}%\n"
-                f"Win/Loss:\t{self.win_loss_ratio}\n"
+                f"Win/Loss:\t{self.win_loss_ratio:.2f}\n"
                 f"Wins count:\t{self.wins_count}\n"
                 f"Losses count:\t{self.losses_count}\n\n"
                 f"Best deal (relative change): {best_deal_rel}\n"
