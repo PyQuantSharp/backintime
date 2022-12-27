@@ -1,5 +1,5 @@
-import typing as t
 import logging
+import typing as t
 from datetime import datetime
 from decimal import Decimal
 
@@ -19,7 +19,6 @@ from .data.data_provider import (
 )
 
 
-logging.basicConfig()
 logger = logging.getLogger("backintime")
 
 
