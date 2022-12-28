@@ -13,13 +13,13 @@ from .broker_proxy import BrokerProxy, OrderInfo, LimitOrderInfo
 from .analyser.analyser import Analyser
 from .candles import Candles
 from .timeframes import Timeframes
-from .analyser.oscillators.base import OscillatorFactory
+from .analyser.indicators.base import IndicatorFactory
 
 
 class TradingStrategy(ABC):
     title = ''
+    indicators: t.Set[IndicatorFactory] = set()
     candle_timeframes: t.Set[Timeframes] = set()
-    oscillators: t.Set[OscillatorFactory] = set()
 
     def __init__(self, 
                  broker: BrokerProxy,

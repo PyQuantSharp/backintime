@@ -5,11 +5,18 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from itertools import islice
 from backintime.timeframes import Timeframes, estimate_close_time
-from .oscillators.constants import CandleProperties
-from .oscillators.base import (
-    Oscillator, 
-    OscillatorFactory, 
-    OscillatorResultSequence, 
+from .indicators.constants import (
+    CandleProperties, 
+    OPEN, 
+    HIGH, 
+    LOW, 
+    CLOSE,
+    VOLUME
+)
+from .indicators.base import (
+    Indicator, 
+    IndicatorFactory, 
+    ResultSequence, 
     MarketData
 )
 
@@ -56,34 +63,34 @@ class AnalyserBuffer:
                 close_time = estimate_close_time(
                                 candle.open_time, timeframe)
                 series['end_time'] = close_time
-                if CandleProperties.OPEN in series:
-                    series[CandleProperties.OPEN].append(candle.open)
-                if CandleProperties.HIGH in series:
-                    series[CandleProperties.HIGH].append(candle.high)
-                if CandleProperties.LOW in series:
-                    series[CandleProperties.LOW].append(candle.low)
-                if CandleProperties.CLOSE in series:
-                    series[CandleProperties.CLOSE].append(candle.close)
-                if CandleProperties.VOLUME in series:
-                    series[CandleProperties.VOLUME].append(candle.volume)
+                if OPEN in series:
+                    series[OPEN].append(candle.open)
+                if HIGH in series:
+                    series[HIGH].append(candle.high)
+                if LOW in series:
+                    series[LOW].append(candle.low)
+                if CLOSE in series:
+                    series[CLOSE].append(candle.close)
+                if VOLUME in series:
+                    series[VOLUME].append(candle.volume)
             else:
                 # Only update last values if needed
-                if CandleProperties.HIGH in series:
-                    highs = series[CandleProperties.HIGH]
+                if HIGH in series:
+                    highs = series[HIGH]
                     if candle.high > highs[-1]:
                         highs[-1] = candle.high
 
-                if CandleProperties.LOW in series:
-                    lows = series[CandleProperties.LOW]
+                if LOW in series:
+                    lows = series[LOW]
                     if candle.low < lows[-1]:
                         lows[-1] = candle.low
-                    
-                if CandleProperties.CLOSE in series:
-                    closes = series[CandleProperties.CLOSE]
+
+                if CLOSE in series:
+                    closes = series[CLOSE]
                     closes[-1] = candle.close
 
-                if CandleProperties.VOLUME in series:
-                    volumes = series[CandleProperties.VOLUME]
+                if VOLUME in series:
+                    volumes = series[VOLUME]
                     volumes[-1] += candle.volume
 
 
@@ -102,31 +109,31 @@ class MarketDataInfo(MarketData):
         return self._data.get_values(timeframe, candle_property, quantity)
 
 
-class OscillatorNotFound(Exception):
-    def __init__(self, oscillator_name: str):
-        super().__init__(f"Oscillator {oscillator_name} was not found")
+class IndicatorNotFound(Exception):
+    def __init__(self, indicator_name: str):
+        super().__init__(f"Indicator {indicator_name} was not found")
 
 
 class Analyser:
     def __init__(self,
                  buffer: AnalyserBuffer,
-                 oscillator_factories: t.Set[OscillatorFactory]):
+                 indicator_factories: t.Set[IndicatorFactory]):
         market_data = MarketDataInfo(buffer)
-        self._oscillators: t.Dict[str, Oscillator] = {
-            factory.get_oscillator_name() : factory.create(market_data) 
-                for factory in oscillator_factories
+        self._indicators: t.Dict[str, Indicator] = {
+            factory.get_indicator_name() : factory.create(market_data) 
+                for factory in indicator_factories
         }
 
-    def get(self, oscillator_name: str) -> OscillatorResultSequence:
-        """Get sequence of oscillator values."""
-        oscillator = self._oscillators.get(oscillator_name)
-        if not oscillator:
-            raise OscillatorNotFound(oscillator_name)
-        return oscillator()
+    def get(self, indicator_name: str) -> ResultSequence:
+        """Get sequence of indicator values."""
+        indicator = self._indicators.get(indicator_name)
+        if not indicator:
+            raise IndicatorNotFound(indicator_name)
+        return indicator()
 
-    def get_last(self, oscillator_name: str) -> t.Any:
-        """Get the last oscillator value."""
-        oscillator = self._oscillators.get(oscillator_name)
-        if not oscillator:
-            raise OscillatorNotFound(oscillator_name)
-        return oscillator()[-1]
+    def get_last(self, indicator_name: str) -> t.Any:
+        """Get the last indicator value."""
+        indicator = self._indicators.get(indicator_name)
+        if not indicator:
+            raise IndicatorNotFound(indicator_name)
+        return indicator()[-1]

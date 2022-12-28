@@ -4,12 +4,12 @@ from datetime import datetime
 from decimal import Decimal
 
 from .trading_strategy import TradingStrategy
-from .analyser.analyser import Analyser, OscillatorNotFound
+from .analyser.analyser import Analyser
 from .broker.base import BrokerException
 from .broker.broker import Broker
 from .broker.fees import FeesEstimator
 from .broker_proxy import BrokerProxy
-from .candles import Candles, CandlesBuffer, CandleNotFound
+from .candles import Candles, CandlesBuffer
 from .result.result import BacktestingResult
 from .utils import validate_timeframes, prefetch_values
 from .data.data_provider import (
@@ -45,7 +45,7 @@ class Backtester:
         analyser_buffer = prefetch_values(self._strategy_t, 
                                           self._data_provider_factory, 
                                           since)
-        analyser = Analyser(analyser_buffer, self._strategy_t.oscillators)
+        analyser = Analyser(analyser_buffer, self._strategy_t.indicators)
         # Create shared buffer for `Candles`
         timeframes = self._strategy_t.candle_timeframes
         candles_buffer = CandlesBuffer(since, timeframes)

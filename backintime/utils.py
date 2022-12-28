@@ -4,8 +4,8 @@ from itertools import chain
 from datetime import datetime, timedelta
 
 from .analyser.analyser import AnalyserBuffer
-from .analyser.oscillators.base import OscillatorParam
-from .analyser.oscillators.constants import CandleProperties
+from .analyser.indicators.base import IndicatorParam
+from .analyser.indicators.constants import CandleProperties
 from .data.data_provider import DataProviderFactory
 from .timeframes import Timeframes, get_timeframes_ratio
 from .trading_strategy import TradingStrategy
@@ -14,11 +14,11 @@ from .trading_strategy import TradingStrategy
 logger = logging.getLogger("backintime")
 
 
-def _get_oscillators_params(
-        strategy_t: t.Type[TradingStrategy]) -> t.List[OscillatorParam]:
-    """Get list of all oscillator params of the strategy."""
-    params = map(lambda x: x.get_oscillator_params(), 
-                 strategy_t.oscillators)
+def _get_indicators_params(
+        strategy_t: t.Type[TradingStrategy]) -> t.List[IndicatorParam]:
+    """Get list of all indicators params of the strategy."""
+    params = map(lambda x: x.get_indicator_params(), 
+                 strategy_t.indicators)
     return list(chain.from_iterable(params))
 
 
@@ -27,15 +27,15 @@ MAGIC_PREFETCH_CONSTANT = 6     # ?
 
 
 def _get_prefetch_count(base_timeframe: Timeframes, 
-                        oscillator_params: t.List[OscillatorParam]) -> int:
+                        indicator_params: t.List[IndicatorParam]) -> int:
     """
     Get the number of `base_timeframe` candles needed to 
-    prefetch all data for oscillators. 
+    prefetch all data for indicators. 
     """
     max_timeframe = base_timeframe
     max_quantity = 1
 
-    for param in oscillator_params:
+    for param in indicator_params:
         if param.timeframe.value > max_timeframe.value:
             max_timeframe = param.timeframe
             if param.quantity and param.quantity > max_quantity:
@@ -55,8 +55,8 @@ def prefetch_values(strategy_t: t.Type[TradingStrategy],
     # однако, число свеч должно быть таким, чтобы из нх можно было построить 
     # столько свеч самого старшего таймфрейма, сколько нужно
     base_timeframe = data_provider_factory.timeframe
-    oscillator_params = _get_oscillators_params(strategy_t)
-    required_count = _get_prefetch_count(base_timeframe, oscillator_params)
+    indicator_params = _get_indicators_params(strategy_t)
+    required_count = _get_prefetch_count(base_timeframe, indicator_params)
     since = until - timedelta(seconds=required_count * base_timeframe.value)
     # TODO: implement optional prefetching
     logger.info("Start prefetching...")
@@ -65,7 +65,7 @@ def prefetch_values(strategy_t: t.Type[TradingStrategy],
     logger.info(f"until: {until}")
 
     analyser_buffer = AnalyserBuffer(since)
-    for param in oscillator_params:
+    for param in indicator_params:
         timeframes_ratio, _ = get_timeframes_ratio(param.timeframe, 
                                                    base_timeframe)
         quantity = int(required_count / timeframes_ratio)
@@ -98,10 +98,10 @@ def validate_timeframes(strategy_t: t.Type[TradingStrategy],
     Check whether all timeframes required for `strategy_t` can be
     represented by candlesticks from data provider.
     """
-    oscillator_params = _get_oscillators_params(strategy_t)
-    oscillator_timeframes = { x.timeframe for x in oscillator_params }
+    indicator_params = _get_indicators_params(strategy_t)
+    indicator_timeframes = { x.timeframe for x in indicator_params }
     candle_timeframes = strategy_t.candle_timeframes
-    timeframes = oscillator_timeframes | candle_timeframes
+    timeframes = indicator_timeframes | candle_timeframes
     base_timeframe = data_provider_factory.timeframe
     # Timeframes are incompatible if there is non zero remainder
     is_incompatible = lambda tf: get_timeframes_ratio(tf, base_timeframe)[1]
