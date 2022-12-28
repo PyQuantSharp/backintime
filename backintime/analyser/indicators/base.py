@@ -1,5 +1,5 @@
+import numpy as np
 import typing as t
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from backintime.timeframes import Timeframes
@@ -8,7 +8,7 @@ from .constants import CandleProperties
 # NOTE: in < 3.9 can't use collections.abc mixins with type subscruptions
 ResultItem = t.TypeVar("ResultItem")
 
-class OscillatorResultSequence(t.Generic[ResultItem]):
+class IndicatorResultSequence(t.Generic[ResultItem]):
     @abstractmethod
     def __iter__(self) -> t.Iterator[ResultItem]:
         """Iterate over results in historical order: oldest first."""
@@ -25,9 +25,13 @@ class OscillatorResultSequence(t.Generic[ResultItem]):
         pass
 
 
-class Oscillator(ABC):
+ResultSequence = t.TypeVar("ResultSequence",
+                           bound=t.Union[IndicatorResultSequence, np.ndarray])
+
+
+class Indicator(ABC):
     @abstractmethod
-    def __call__(self) -> OscillatorResultSequence:
+    def __call__(self) -> ResultSequence:
         pass
 
 
@@ -40,7 +44,7 @@ class MarketData(ABC):
         pass
 
 
-class BaseOscillator(Oscillator):
+class BaseIndicator(Indicator):
     def __init__(self, market_data: MarketData):
         self._market_data = market_data
 
@@ -50,26 +54,26 @@ class BaseOscillator(Oscillator):
 
 
 @dataclass
-class OscillatorParam:
+class IndicatorParam:
     timeframe: Timeframes
     candle_property: CandleProperties
     quantity: t.Optional[int] = None
 
 
-class OscillatorFactory(ABC):
+class IndicatorFactory(ABC):
     @abstractmethod
-    def get_oscillator_name(self) -> str:
+    def get_indicator_name(self) -> str:
         """
-        Get the name of the oscillator to be created.
+        Get the name of the indicator to be created.
         Instances with different timeframes must have different names.
         """
         pass
 
     @abstractmethod
-    def get_oscillator_params(self) -> t.Sequence[OscillatorParam]:
-        """Get a list of params of the oscillator to be created."""
+    def get_indicator_params(self) -> t.Sequence[IndicatorParam]:
+        """Get a list of params of the indicator to be created."""
         pass
 
     @abstractmethod
-    def create(self, market_data: MarketData) -> BaseOscillator:
+    def create(self, market_data: MarketData) -> BaseIndicator:
         pass

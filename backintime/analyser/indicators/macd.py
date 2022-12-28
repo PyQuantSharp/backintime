@@ -1,29 +1,27 @@
-import typing as t
-
 import ta
 import numpy
 import pandas as pd
+import typing as t
 from dataclasses import dataclass
 from backintime.timeframes import Timeframes
 from .constants import CandleProperties
 from .base import (
-    Oscillator, 
     MarketData,
-    BaseOscillator, 
-    OscillatorFactory, 
-    OscillatorParam,
-    OscillatorResultSequence
+    BaseIndicator, 
+    IndicatorFactory, 
+    IndicatorParam,
+    IndicatorResultSequence
 )
 
 
 @dataclass
 class MacdResultItem:
-    macd: float
-    signal: float
-    hist: float
+    macd: numpy.float64
+    signal: numpy.float64
+    hist: numpy.float64
 
 
-class MacdResultSequence(OscillatorResultSequence[MacdResultItem]):
+class MacdResultSequence(IndicatorResultSequence[MacdResultItem]):
     def __init__(self,
                  macd: numpy.ndarray,
                  signal: numpy.ndarray,
@@ -39,19 +37,19 @@ class MacdResultSequence(OscillatorResultSequence[MacdResultItem]):
         return self.hist[-1] <= 0 and self.hist[-2] > 0
 
     def __iter__(self) -> t.Iterator[MacdResultItem]:
+        zip_iter = zip(self.macd, self.signal, self.hist)
         return (
             MacdResultItem(macd, signal, hist) 
-                for macd, signal, hist in zip(self.macd, 
-                                              self.signal, 
-                                              self.hist)
+                for macd, signal, hist in zip_iter
         )
 
     def __reversed__(self) -> t.Iterator[MacdResultItem]:
+        reversed_iter = zip(reversed(self.macd), 
+                            reversed(self.signal), 
+                            reversed(self.hist))
         return (
             MacdResultItem(macd, signal, hist) 
-                for macd, signal, hist in zip(reversed(self.macd),
-                                              reversed(self.signal), 
-                                              reversed(self.hist))
+                for macd, signal, hist in reversed_iter
         )
 
     def __getitem__(self, index: int) -> MacdResultItem:
@@ -64,7 +62,7 @@ class MacdResultSequence(OscillatorResultSequence[MacdResultItem]):
                 f"signal={self.signal}, hist={self.hist})")
 
 
-class Macd(BaseOscillator):
+class MacdIndicator(BaseIndicator):
     def __init__(self, 
                  market_data: MarketData,
                  timeframe: Timeframes,
@@ -92,7 +90,7 @@ class Macd(BaseOscillator):
                                   macd.macd_diff().values)
 
 
-class MacdFactory(OscillatorFactory):
+class MacdFactory(IndicatorFactory):
     def __init__(self, 
                  timeframe: Timeframes,
                  fastperiod: int=12,
@@ -103,15 +101,15 @@ class MacdFactory(OscillatorFactory):
         self.slowperiod = slowperiod
         self.signalperiod = signalperiod
 
-    def get_oscillator_name(self) -> str:
+    def get_indicator_name(self) -> str:
         return f"macd_{str.lower(self.timeframe.name)}"
 
-    def get_oscillator_params(self) -> t.Sequence[OscillatorParam]:
+    def get_indicator_params(self) -> t.Sequence[IndicatorParam]:
         return [
-            OscillatorParam(self.timeframe, CandleProperties.CLOSE)
+            IndicatorParam(self.timeframe, CandleProperties.CLOSE)
         ]
 
-    def create(self, data) -> Macd:
-        return Macd(data, self.timeframe, self.fastperiod, 
-                    self.slowperiod, self.signalperiod)
+    def create(self, data: MarketData) -> MacdIndicator:
+        return MacdIndicator(data, self.timeframe, self.fastperiod, 
+                             self.slowperiod, self.signalperiod)
 
