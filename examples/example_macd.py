@@ -1,14 +1,14 @@
 from datetime import datetime
 from backintime.trading_strategy import TradingStrategy
 from backintime.timeframes import Timeframes as tf
-from backintime.analyser.oscillators.macd import macd
+from backintime.analyser.indicators.macd import macd
 from backintime.data.binance import BinanceCandlesFactory
 from backintime.backtester import Backtester
 
 
 class MacdStrategy(TradingStrategy):
-    title = "Example MACD Strategy v0"
-    oscillators = { macd(tf.H1) }
+    title = "Example MACD Strategy"
+    indicators = { macd(tf.H1) }
 
     def tick(self):
         macd = self.analyser.get('macd_h1')

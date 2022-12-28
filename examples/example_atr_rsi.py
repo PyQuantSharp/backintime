@@ -1,43 +1,50 @@
-from backintime import (
-    Backtester,
-    BinanceApiCandles,
-    TradingStrategy,
-    Timeframes,
-    CandleProperties
-)
-from backintime.oscillators.atr import atr
-from backintime.oscillators.rsi import rsi
+import typing as t
+from datetime import datetime
+from backintime.trading_strategy import TradingStrategy
+from backintime.timeframes import Timeframes as tf
+from backintime.analyser.indicators import atr, rsi
+from backintime.data.binance import BinanceCandlesFactory
+from backintime.backtester import Backtester
 
 
-class MyStrategy(TradingStrategy):
+class AtrRsiStrategy(TradingStrategy):
+    title = "Example ATR/RSI strategy"
+    candle_timeframes = { tf.H4, tf.D1 }
+    indicators = { 
+        atr(tf.H4), 
+        rsi(tf.H4), 
+        rsi(tf.D1) 
+    }
 
-    using_candles = (Timeframes.H4, Timeframes.D1)
-    using_oscillators = (
-        atr(Timeframes.H4, 14, 'ATR_H4', False),
-        rsi(Timeframes.H4, 14, 'RSI_H4', False),
-        rsi(Timeframes.D1, 14, 'RSI_D1', False)
-    )
+    def __init__(self, broker, analyser, candles):
+        self.last_buy: t.Optional[OrderInfo] = None
+        super().__init__(broker, analyser, candles)
 
-    def __call__(self):
-
+    def tick(self):
         if not self.position:
-            rsi_d1 = self.oscillators.get('RSI_D1')
+            rsi_d1 = self.analyser.get('rsi_d1')
             if rsi_d1 > 50:
-                current_candle = self.candles.get(Timeframes.H4)
+                current_candle = self.candles.get(tf.H4)
                 price = current_candle.close
-                atr_h4 = self.oscillators.get('ATR_H4')
+                atr_h4 = self.analyser.get('atr_h4')
                 if atr_h4 >= price*0.02:
-                    self._buy()
+                    self.last_buy = self.buy()
 
         elif self.position:
-            rsi_h4 = self.oscillators.get('RSI_H4')
-            atr_h4 = self.oscillators.get('ATR_H4')
-            price = self.position.opening_price()
+            rsi_h4 = self.analyser.get('rsi_h4')
+            atr_h4 = self.analyser.get('atr_h4')
+            price = self.last_buy.fill_price
             if rsi_h4 <= 50 or atr_h4 < price*0.02:
-                self._sell()
+                self.sell()
 
 
-feed = BinanceApiCandles('BTCUSDT', Timeframes.H4)
-backtester = Backtester(MyStrategy, feed)
-backtester.run_test('2020-01-01', 10000)
-print(backtester.results())
+feed = BinanceCandlesFactory('BTCUSDT', tf.M1)
+since = datetime.fromisoformat("2020-01-01 00:00+00:00")
+until = datetime.fromisoformat("2021-01-01 00:00+00:00")
+
+backtester = Backtester(AtrRsiStrategy, feed)
+result = backtester.run(10_000, since, until, 
+                        maker_fee='0.005', taker_fee='0.005')
+print(result)
+print(result.get_stats('FIFO'))
+result.export()
