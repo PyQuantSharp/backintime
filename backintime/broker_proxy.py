@@ -37,6 +37,11 @@ class BrokerProxy(AbstractBroker):
         """Get max available fiat for a 'taker' order."""
         return self._broker.max_fiat_for_taker
 
+    @property
+    def current_equity(self) -> Decimal:
+        """Get current equity."""
+        return self._broker.current_equity
+
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""
         return self._broker.iter_orders()

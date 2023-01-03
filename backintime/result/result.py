@@ -96,6 +96,7 @@ class BacktestingResult:
                  data_provider: DataProvider,
                  start_balance: Decimal,
                  result_balance: Decimal,
+                 result_equity: Decimal,
                  trades: t.Sequence[Trade],
                  orders: t.Sequence[OrderInfo]):
         self._data_provider = data_provider
@@ -107,7 +108,8 @@ class BacktestingResult:
         self._strategy_title = strategy_title
         self._start_balance = start_balance
         self._result_balance = result_balance
-        diff = result_balance - start_balance
+        self._result_equity = result_equity
+        diff = result_equity - start_balance
         self._total_gain = diff
         self._total_gain_percents = diff/(start_balance/100)
         self._trades = trades
@@ -131,6 +133,10 @@ class BacktestingResult:
     @property
     def result_balance(self) -> Decimal:
         return self._result_balance
+
+    @property
+    def result_equity(self) -> Decimal:
+        return self._result_equity
 
     @property
     def total_gain(self) -> Decimal:
@@ -215,7 +221,8 @@ class BacktestingResult:
 
         content = (f"Strategy title: {self.strategy_title}\n"
                    f"Start balance:\t\t{self.start_balance:.2f}\n"
-                   f"Result balance: \t{self.result_balance:.2f}\n"
+                   f"Result balance:\t\t{self.result_balance:.2f}\n"
+                   f"Result equity:\t\t{self.result_equity:.2f}\n"
                    f"Total gain:\t\t{self.total_gain:.2f}\n"
                    f"Total gain percents:\t{self.total_gain_percents:.2f}%\n"
                    f"Trades count:\t{self.trades_count}\n"

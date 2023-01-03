@@ -107,6 +107,8 @@ class Broker(AbstractBroker):
         self._trades: t.List[Trade] = []
         # Close time of the current candle
         self._current_time: t.Optional[datetime] = None
+        # Close price of the current (last) candle
+        self._current_price: t.Optional[Decimal] = None
         # Used for rounding
         self._min_fiat = min_fiat
         self._min_crypto = min_crypto
@@ -129,6 +131,15 @@ class Broker(AbstractBroker):
         available_fiat = self._balance.available_fiat_balance
         available_fiat = available_fiat / (1 + self._fees.maker_fee)
         return available_fiat.quantize(self._min_fiat, ROUND_FLOOR)
+
+    @property
+    def current_equity(self) -> Decimal:
+        """Get current equity."""
+        fiat_balance = self._balance.fiat_balance
+        crypto_balance = self._balance.crypto_balance
+        market_price = self._current_price
+        equity = fiat_balance + crypto_balance * market_price
+        return equity.quantize(self._min_fiat, ROUND_FLOOR)
 
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""
@@ -422,6 +433,7 @@ class Broker(AbstractBroker):
     def update(self, candle) -> None:
         """Review whether orders can be executed."""
         self._current_time = candle.close_time
+        self._current_price = candle.close
         # Execute all market orders
         self._execute_market_orders(candle.open)
         # Review orders with limited price 

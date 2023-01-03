@@ -219,6 +219,12 @@ class AbstractBroker(ABC):
         """Get max available fiat for a 'maker' order."""
         pass
 
+    @property
+    @abstractmethod
+    def current_equity(self) -> Decimal:
+        """Get current equity."""
+        pass
+
     @abstractmethod
     def iter_orders(self) -> t.Iterator[OrderInfo]:
         """Get orders iterator."""

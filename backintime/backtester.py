@@ -75,5 +75,6 @@ class Backtester:
                                  market_data,
                                  start_money,
                                  broker.balance.fiat_balance,
+                                 broker.current_equity,
                                  broker.get_trades(),
                                  broker.get_orders())
