@@ -61,16 +61,18 @@ class IndicatorParam:
 
 
 class IndicatorFactory(ABC):
+    @property
     @abstractmethod
-    def get_indicator_name(self) -> str:
+    def indicator_name(self) -> str:
         """
         Get the name of the indicator to be created.
         Instances with different timeframes must have different names.
         """
         pass
 
+    @property
     @abstractmethod
-    def get_indicator_params(self) -> t.Sequence[IndicatorParam]:
+    def indicator_params(self) -> t.Sequence[IndicatorParam]:
         """Get a list of params of the indicator to be created."""
         pass
 

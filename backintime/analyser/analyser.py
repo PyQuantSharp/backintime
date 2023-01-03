@@ -120,7 +120,7 @@ class Analyser:
                  indicator_factories: t.Set[IndicatorFactory]):
         market_data = MarketDataInfo(buffer)
         self._indicators: t.Dict[str, Indicator] = {
-            factory.get_indicator_name() : factory.create(market_data) 
+            factory.indicator_name : factory.create(market_data) 
                 for factory in indicator_factories
         }
 

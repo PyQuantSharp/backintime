@@ -17,7 +17,7 @@ logger = logging.getLogger("backintime")
 def _get_indicators_params(
         strategy_t: t.Type[TradingStrategy]) -> t.List[IndicatorParam]:
     """Get list of all indicators params of the strategy."""
-    params = map(lambda x: x.get_indicator_params(), 
+    params = map(lambda x: x.indicator_params, 
                  strategy_t.indicators)
     return list(chain.from_iterable(params))
 
