@@ -73,13 +73,14 @@ class MacdIndicator(BaseIndicator):
         self._fastperiod = fastperiod
         self._slowperiod = slowperiod
         self._signalperiod = signalperiod
+        self._quantity = signalperiod * slowperiod
         super().__init__(market_data)
 
     def __call__(self) -> MacdResultSequence:
         market_data = self.market_data
         close = pd.Series(market_data.get_values(self._timeframe,
                                                  CandleProperties.CLOSE,
-                                                 100))
+                                                 self._quantity))
         macd = ta.trend.MACD(close,
                              self._slowperiod,
                              self._fastperiod,
@@ -95,18 +96,24 @@ class MacdFactory(IndicatorFactory):
                  timeframe: Timeframes,
                  fastperiod: int=12,
                  slowperiod: int=26,
-                 signalperiod: int=9):
+                 signalperiod: int=9,
+                 name: str = ''):
         self.timeframe = timeframe
         self.fastperiod = fastperiod
         self.slowperiod = slowperiod
         self.signalperiod = signalperiod
+        self._name = name or f"macd_{str.lower(timeframe.name)}"
 
-    def get_indicator_name(self) -> str:
-        return f"macd_{str.lower(self.timeframe.name)}"
+    @property
+    def indicator_name(self) -> str:
+        return self._name
 
-    def get_indicator_params(self) -> t.Sequence[IndicatorParam]:
+    @property
+    def indicator_params(self) -> t.Sequence[IndicatorParam]:
         return [
-            IndicatorParam(self.timeframe, CandleProperties.CLOSE)
+            IndicatorParam(timeframe=self.timeframe, 
+                           candle_property=CandleProperties.CLOSE,
+                           quantity=self.slowperiod * self.signalperiod)
         ]
 
     def create(self, data: MarketData) -> MacdIndicator:
