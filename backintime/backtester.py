@@ -11,7 +11,7 @@ from .broker.fees import FeesEstimator
 from .broker_proxy import BrokerProxy
 from .candles import Candles, CandlesBuffer
 from .result.result import BacktestingResult
-from .utils import validate_timeframes, prefetch_values
+from .utils import validate_timeframes, prefetch_values, PrefetchOptions
 from .data.data_provider import (
     DataProvider, 
     DataProviderFactory,
@@ -20,6 +20,7 @@ from .data.data_provider import (
 
 
 logger = logging.getLogger("backintime")
+UNTIL = PrefetchOptions.PREFETCH_UNTIL
 
 
 class Backtester:
@@ -35,16 +36,18 @@ class Backtester:
             since: datetime, 
             until: datetime,
             maker_fee: str,
-            taker_fee: str) -> BacktestingResult:
+            taker_fee: str,
+            prefetch_option: PrefetchOptions = UNTIL) -> BacktestingResult:
         # Create shared `Broker` for `BrokerProxy`
         start_money = Decimal(start_money)
         fees = FeesEstimator(Decimal(maker_fee), Decimal(taker_fee))
         broker = Broker(start_money, fees)
         broker_proxy = BrokerProxy(broker)
         # Create shared buffer for `Analyser`
-        analyser_buffer = prefetch_values(self._strategy_t, 
-                                          self._data_provider_factory, 
-                                          since)
+        analyser_buffer, since = prefetch_values(self._strategy_t, 
+                                                 self._data_provider_factory,
+                                                 prefetch_option,
+                                                 since)
         analyser = Analyser(analyser_buffer, self._strategy_t.indicators)
         # Create shared buffer for `Candles`
         timeframes = self._strategy_t.candle_timeframes
