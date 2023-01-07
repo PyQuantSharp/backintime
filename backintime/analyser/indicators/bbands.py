@@ -40,7 +40,7 @@ class BbandsResultSequence(IndicatorResultSequence[BbandsResultItem]):
     def __reversed__(self) -> t.Iterator[BbandsResultItem]:
         reversed_iter = zip(reversed(self.upper_band), 
                             reversed(self.middle_band), 
-                            reversed(lower_band))
+                            reversed(self.lower_band))
         return (
             BbandsResultItem(upper, middle, lower) 
                 for upper, middle, lower in reversed_iter
