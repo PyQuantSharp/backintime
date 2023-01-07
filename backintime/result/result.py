@@ -167,8 +167,8 @@ class BacktestingResult:
         self.export_orders()
 
     def export_stats(self, 
-                     filename: t.Optional[str]=None,
-                     exclude_algorithms: t.Optional[t.Iterable[str]]=set(),
+                     filename: t.Optional[str] = None,
+                     exclude_algorithms: t.Iterable[str] = set(),
                      delimiter=';') -> None:
         """Export stats to CSV file."""
         stats_algorithms = {'FIFO', 'LIFO', 'ACVO'}
@@ -183,16 +183,16 @@ class BacktestingResult:
                      self.total_gain, self.total_gain_percents, stats)
 
     def export_trades(self, 
-                      filename: t.Optional[str]=None, 
-                      exclude_fields: t.Optional[t.Iterable[str]]=set(),
+                      filename: t.Optional[str] = None, 
+                      exclude_fields: t.Iterable[str] = set(),
                       delimiter=';') -> None:
         """Export trades to CSV file."""
         filename = filename or self._get_default_csv_filename('trades')
         export_trades(filename, delimiter, self._trades, exclude_fields)
 
     def export_orders(self, 
-                      filename: t.Optional[str]=None,
-                      exclude_fields: t.Optional[t.Iterable[str]]=set(),
+                      filename: t.Optional[str] = None,
+                      exclude_fields: t.Iterable[str] = set(),
                       delimiter=';') -> None:
         """Export orders to CSV file."""
         filename = filename or self._get_default_csv_filename('orders')

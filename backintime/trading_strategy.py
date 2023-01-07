@@ -2,18 +2,18 @@ import typing as t
 
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from backintime.broker.base import (
+from .candles import Candles
+from .timeframes import Timeframes
+from .analyser.analyser import Analyser
+from .analyser.indicators.base import IndicatorFactory
+from .broker_proxy import BrokerProxy, OrderInfo, LimitOrderInfo
+from .broker.base import (
     OrderSide,
     MarketOrderFactory,
     LimitOrderFactory,
     TakeProfitFactory,
     StopLossFactory
 )
-from .broker_proxy import BrokerProxy, OrderInfo, LimitOrderInfo
-from .analyser.analyser import Analyser
-from .candles import Candles
-from .timeframes import Timeframes
-from .analyser.indicators.base import IndicatorFactory
 
 
 class TradingStrategy(ABC):
@@ -37,13 +37,13 @@ class TradingStrategy(ABC):
     def position(self) -> Decimal:
         return self.broker.balance.available_crypto_balance
 
-    def buy(self, amount: t.Optional[Decimal]=None) -> OrderInfo:
+    def buy(self, amount: t.Optional[Decimal] = None) -> OrderInfo:
         """Shortcut for submitting market buy order."""
         order_amount = amount or self.broker.max_fiat_for_taker
         order = MarketOrderFactory(OrderSide.BUY, order_amount)
         return self.broker.submit_market_order(order)
 
-    def sell(self, amount: t.Optional[Decimal]=None) -> OrderInfo:
+    def sell(self, amount: t.Optional[Decimal] = None) -> OrderInfo:
         """Shortcut for submitting market sell order."""
         order_amount = amount or self.position
         order = MarketOrderFactory(OrderSide.SELL, order_amount)
@@ -51,9 +51,9 @@ class TradingStrategy(ABC):
 
     def limit_buy(self, 
                   order_price: Decimal,
-                  take_profit_factory: t.Optional[TakeProfitFactory]=None,
-                  stop_loss_factory: t.Optional[StopLossFactory]=None,
-                  amount: t.Optional[Decimal]=None) -> LimitOrderInfo:
+                  take_profit_factory: t.Optional[TakeProfitFactory] = None,
+                  stop_loss_factory: t.Optional[StopLossFactory] = None,
+                  amount: t.Optional[Decimal] = None) -> LimitOrderInfo:
         """Shortcut for submitting limit buy order."""
         order_amount = amount or self.broker.max_fiat_for_maker
         order = LimitOrderFactory(OrderSide.BUY,
@@ -65,9 +65,9 @@ class TradingStrategy(ABC):
 
     def limit_sell(self, 
                    order_price: Decimal,
-                   take_profit_factory: t.Optional[TakeProfitFactory]=None,
-                   stop_loss_factory: t.Optional[StopLossFactory]=None,
-                   amount: t.Optional[Decimal]=None) -> LimitOrderInfo:
+                   take_profit_factory: t.Optional[TakeProfitFactory] = None,
+                   stop_loss_factory: t.Optional[StopLossFactory] = None,
+                   amount: t.Optional[Decimal] = None) -> LimitOrderInfo:
         """Shortcut for submitting limit sell order."""
         order_amount = amount or self.position
         order = LimitOrderFactory(OrderSide.SELL,

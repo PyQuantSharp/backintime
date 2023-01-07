@@ -134,7 +134,7 @@ class CSVOrdersExporter:
                filename: str,
                delimiter: str,
                orders: t.Sequence[OrderInfo],
-               exclude_fields: t.Optional[t.Iterable[str]]=set()) -> None:
+               exclude_fields: t.Iterable[str] = set()) -> None:
         """
         Export orders to CSV file. 
         Won't take effect if `orders` is an empty sequence.
@@ -216,7 +216,7 @@ class CSVTradesExporter:
                filename: str,
                delimiter: str,
                trades: t.Sequence[Trade],
-               exclude_fields: t.Optional[t.Iterable[str]]=set()) -> None:
+               exclude_fields: t.Iterable[str] = set()) -> None:
         """
         Export trades to CSV file. 
         Won't take effect if `trades` is an empty sequence.
@@ -287,7 +287,7 @@ def export_stats(filename: str,
 def export_orders(filename: str,
                   delimiter: str,
                   orders: t.Sequence[OrderInfo],
-                  exclude_fields: t.Optional[t.Iterable[str]]=set()) -> None:
+                  exclude_fields: t.Iterable[str] = set()) -> None:
     """
     Export orders to CSV file.
     Won't take effect if `orders` is empty.
@@ -298,7 +298,7 @@ def export_orders(filename: str,
 def export_trades(filename: str,
                   delimiter: str,
                   trades: t.Sequence[Trade],
-                  exclude_fields: t.Optional[t.Iterable[str]]=set()) -> None:
+                  exclude_fields: t.Iterable[str] = set()) -> None:
     """
     Export trades to CSV file.
     Won't take effect if `trades` is empty.

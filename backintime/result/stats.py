@@ -39,16 +39,16 @@ def _repr_profit(trade_profit: TradeProfit, percents_first=True) -> str:
 class Stats:
     algorithm: str
     trades_profit: list
-    avg_profit: t.Optional[Decimal]=Decimal('NaN')
-    win_rate: t.Optional[Decimal]=Decimal('NaN')
-    profit_loss_ratio: t.Optional[Decimal]=Decimal('NaN')
-    win_loss_ratio: t.Optional[Decimal]=Decimal('NaN')
-    wins_count: t.Optional[int]=0
-    losses_count: t.Optional[int]=0
-    best_deal_relative: t.Optional[TradeProfit]=None
-    best_deal_absolute: t.Optional[TradeProfit]=None
-    worst_deal_relative: t.Optional[TradeProfit]=None
-    worst_deal_absolute: t.Optional[TradeProfit]=None
+    avg_profit: Decimal = Decimal('NaN')
+    win_rate: Decimal = Decimal('NaN')
+    profit_loss_ratio: Decimal = Decimal('NaN')
+    win_loss_ratio: Decimal = Decimal('NaN')
+    wins_count: int = 0
+    losses_count: int = 0
+    best_deal_relative: t.Optional[TradeProfit] = None
+    best_deal_absolute: t.Optional[TradeProfit] = None
+    worst_deal_relative: t.Optional[TradeProfit] = None
+    worst_deal_absolute: t.Optional[TradeProfit] = None
 
     def __repr__(self) -> str:
         best_deal_rel = _repr_profit(self.best_deal_relative)

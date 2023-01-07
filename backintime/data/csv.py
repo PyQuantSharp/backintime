@@ -174,10 +174,10 @@ class CSVCandlesFactory(DataProviderFactory):
                  filename: str,
                  symbol: str,
                  timeframe: Timeframes,
-                 schema: CSVCandlesSchema=_default_schema(),
+                 schema: CSVCandlesSchema = _default_schema(),
                  delimiter=';',
                  quotechar='|',
-                 date_parser=lambda x: pd.to_datetime(x, utc=True)):
+                 date_parser = lambda x: pd.to_datetime(x, utc=True)):
         self.filename = filename
         self.symbol = symbol
         self.tf = timeframe
@@ -192,7 +192,7 @@ class CSVCandlesFactory(DataProviderFactory):
 
     def create(self, 
                since: datetime, 
-               until: t.Optional[datetime]=_utcnow()) -> CSVCandles:
+               until: datetime = _utcnow()) -> CSVCandles:
         return CSVCandles(self.filename, self.symbol, 
                           self.timeframe, self.schema, 
                           self.delimiter, self.quotechar, 

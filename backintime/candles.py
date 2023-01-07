@@ -10,12 +10,12 @@ from .timeframes import Timeframes, estimate_close_time
 class Candle:
     open_time:  datetime
     close_time: datetime
-    open:       t.Optional[Decimal]=Decimal('NaN')
-    high:       t.Optional[Decimal]=Decimal('NaN')
-    low:        t.Optional[Decimal]=Decimal('NaN')
-    close:      t.Optional[Decimal]=Decimal('NaN')
-    volume:     t.Optional[Decimal]=Decimal('NaN')
-    is_closed:  t.Optional[bool]=False
+    open:       Decimal = Decimal('NaN')
+    high:       Decimal = Decimal('NaN')
+    low:        Decimal = Decimal('NaN')
+    close:      Decimal = Decimal('NaN')
+    volume:     Decimal = Decimal('NaN')
+    is_closed:  bool = False
 
 
 class CandleNotFound(Exception):
@@ -31,6 +31,13 @@ def _create_placeholder_candle(open_time: datetime,
 
 
 class CandlesBuffer:
+    """
+    Provides the last candle representation for all timeframes
+    passed to ctor.
+    It is useful for checking properties of a candle 
+    on one timeframe (H1, for example), while having data
+    on another (for instance, M1).
+    """
     def __init__(self,
                  start_time: datetime,
                  timeframes: t.Set[Timeframes]):
@@ -40,12 +47,14 @@ class CandlesBuffer:
         }
 
     def get(self, timeframe: Timeframes) -> Candle:
+        """Get the last candle representation for `timeframe`."""
         try:
             return self._data[timeframe]
         except KeyError:
             raise CandleNotFound(timeframe)
 
     def update(self, candle: InputCandle) -> None:
+        """Update stored candles data in accordance with `candle`."""
         for timeframe in self._data:
             self._update_candle(timeframe, candle) 
 
@@ -74,8 +83,15 @@ class CandlesBuffer:
 
 
 class Candles:
+    """
+    Provides the last candle representation for various timeframes.
+    It is useful for checking properties of a candle 
+    on one timeframe (H1, for example), while having data
+    on another (for instance, M1).
+    """
     def __init__(self, buffer: CandlesBuffer):
         self._buffer=buffer
 
     def get(self, timeframe: Timeframes) -> Candle:
+        """Get the last candle representation for `timeframe`."""
         return replace(self._buffer.get(timeframe))
