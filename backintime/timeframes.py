@@ -48,7 +48,7 @@ def get_millis_duration(timeframe: Timeframes) -> int:
 
 def estimate_open_time(time: datetime, 
                        timeframe: Timeframes, 
-                       offset: t.Optional[int]=0) -> datetime:
+                       offset: int = 0) -> datetime:
     """
     Get open time of a candle on `timeframe` from `time` 
     and add `offset` closed candles.
@@ -61,7 +61,7 @@ def estimate_open_time(time: datetime,
 
 def estimate_close_time(time: datetime, 
                         timeframe: Timeframes, 
-                        offset: t.Optional[int]=0) -> datetime:
+                        offset: int = 0) -> datetime:
     """
     Get close time of a candle on `timeframe` from `time`
     and add `offset` closed candles.
