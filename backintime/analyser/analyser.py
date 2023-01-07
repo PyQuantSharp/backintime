@@ -52,14 +52,14 @@ class AnalyserBuffer:
     def get_values(self, 
                    timeframe: Timeframes, 
                    candle_property: CandleProperties,
-                   quantity: int) -> list:
+                   limit: int) -> list:
         """
-        Get at most `quantity` values of `candle_property` 
+        Get at most `limit` values of `candle_property` 
         for `timeframe`.
         """
         data = self._data[timeframe][candle_property]
-        start = max(0, data.maxlen - quantity)
-        return list(islice(data, start, data.maxlen))
+        offset = max(0, data.maxlen - limit)
+        return list(islice(data, offset, data.maxlen))
 
     def update(self, candle) -> None:
         for timeframe, series in self._data.items():
