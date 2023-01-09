@@ -8,6 +8,11 @@ from .timeframes import Timeframes, estimate_close_time
 
 @dataclass
 class Candle:
+    """
+    Contains a snapshot of OHLCV data of a candle. 
+    The `is_closed` attribute can be used to determine if 
+    the data is in its final state (i.e., the candle is closed).
+    """
     open_time:  datetime
     close_time: datetime
     open:       Decimal = Decimal('NaN')
@@ -47,7 +52,11 @@ class CandlesBuffer:
         }
 
     def get(self, timeframe: Timeframes) -> Candle:
-        """Get the last candle representation for `timeframe`."""
+        """
+        Get the last candle representation on `timeframe`.
+        If the candle of `timeframe` is not found, 
+        raises `CandleNotFound`.
+        """
         try:
             return self._data[timeframe]
         except KeyError:
@@ -93,5 +102,9 @@ class Candles:
         self._buffer=buffer
 
     def get(self, timeframe: Timeframes) -> Candle:
-        """Get the last candle representation for `timeframe`."""
+        """
+        Get the last candle representation on `timeframe`.
+        If the candle of `timeframe` is not found, 
+        raises `CandleNotFound`.
+        """
         return replace(self._buffer.get(timeframe))
