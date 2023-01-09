@@ -8,6 +8,8 @@ from backintime.analyser.indicators.ema import EMAFactory
 from backintime.analyser.indicators.atr import ATRFactory
 from backintime.analyser.indicators.rsi import RSIFactory
 from backintime.analyser.indicators.bbands import BbandsFactory
+from backintime.analyser.indicators.dmi import DMIFactory
+from backintime.analyser.indicators.adx import ADXFactory
 from backintime.analyser.indicators.constants import HIGH, LOW, CLOSE
 from backintime.timeframes import Timeframes as tf
 from backintime.timeframes import estimate_open_time
@@ -269,3 +271,87 @@ def test_bbands():
     assert upper_band_diff <= expected_precision
     assert mid_band_diff <= expected_precision
     assert lower_band_diff <= expected_precision
+
+
+def test_dmi():
+    """
+    Ensure that calculated DMI values match expected 
+    with at least 2 floating points precision,
+    using valid DMI for 2022-30-11 23:59 UTC, H4 (Binance) 
+    as a reference value.
+    """
+    dmi = DMIFactory(tf.H4)
+    quantity = dmi.indicator_params[0].quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, HIGH, quantity)
+    analyser_buffer.reserve(tf.H4, LOW, quantity)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { dmi })
+
+    expected_adx = Decimal('27.1603')
+    expected_positive_di = Decimal('34.2968')
+    expected_negative_di = Decimal('14.7384')
+    expected_precision = Decimal('0.01')
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    dmi = analyser.get_last("dmi_h4")
+
+    positive_di = dmi.positive_di
+    pos_di_diff = (Decimal(positive_di) - expected_positive_di).copy_abs()
+    pos_di_diff = pos_di_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    negative_di = dmi.negative_di
+    neg_di_diff = (Decimal(negative_di) - expected_negative_di).copy_abs()
+    neg_di_diff = neg_di_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    adx = dmi.adx
+    adx_diff = (Decimal(adx) - expected_adx).copy_abs()
+    adx_diff = adx_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    assert adx_diff <= expected_precision
+    assert pos_di_diff <= expected_precision
+    assert neg_di_diff <= expected_precision
+
+
+def test_adx():
+    """
+    Ensure that calculated ADX value match expected 
+    with at least 2 floating points precision,
+    using valid ADX for 2022-30-11 23:59 UTC, H4 (Binance) 
+    as a reference value.
+    """
+    adx = ADXFactory(tf.H4)
+    quantity = adx.indicator_params[0].quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, HIGH, quantity)
+    analyser_buffer.reserve(tf.H4, LOW, quantity)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { adx })
+
+    expected_adx = Decimal('27.1603')
+    expected_precision = Decimal('0.01')
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    adx = analyser.get_last("adx_h4")
+    adx_diff = (Decimal(adx) - expected_adx).copy_abs()
+    adx_diff = adx_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    assert adx_diff <= expected_precision
