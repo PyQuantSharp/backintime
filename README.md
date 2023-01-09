@@ -1,17 +1,21 @@
 # backintime 1.6.3
-✨ A framework for trading strategies backtesting with Python ✨  
+✨ Tool for testing trading strategies on historical data ✨    
+Such testing does not guarantee the same results in real trading, but it gives a rough estimate of a strategy's success and allows you to quickly check the effect of changes. 
+The smaller timeframe is used, the more accurate the results will be.
+
 > Branch for the new version (not yet released). 
   In this version, I'll implement trailing stop and stop loss orders, fix bugs,
   rewrite internals in a more clear and OOP way and improve type hints in all package  
-  Note: as for now, this is neither stable nor working code.   
+  Note: Margin trading is not supported as for now. Expected in 2.x releases.
 
 ## Features
-- Market, limit, take profit, stop loss orders management
 - Use CSV or Binance API as a data source
-- The same data can be represented in up to 16 timeframes  
-    (few short candles is compressed to longer one)
-- Brief trading history statistics (win rate, avg. profit, etc.)
-- Export trades to csv
+- The same data can be represented in various timeframes  
+    (few short candles is used to represent longer one)
+- Market, Limit, Take Profit, Take Profit Limit, Stop Loss, Stop Loss Limit orders management
+- Builtin support for MA, EMA, MACD, BBANDS, RSI, ATR, ADX, DMI
+- Trading statistics (win rate, profit/loss, avg. profit, etc.) with FIFO, LIFO or ACVO Profit/Loss estimation algorithms
+- Export orders, trades and statistics to csv
 
 
 ## License
