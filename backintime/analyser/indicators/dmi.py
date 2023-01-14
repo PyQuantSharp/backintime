@@ -67,6 +67,11 @@ class DMIResultSequence(IndicatorResultSequence[DMIResultItem]):
                              self.positive_di[index], 
                              self.negative_di[index])
 
+    def __len__(self) -> int:
+        return min(len(self.adx),
+                   len(self.positive_di),
+                   len(self.negative_di))
+
     def __repr__(self) -> str:
         return (f"DMIResultSequence(adx={self.adx}, "
                 f"positive_di={self.positive_di}, "

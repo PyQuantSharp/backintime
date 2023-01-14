@@ -63,6 +63,32 @@ def test_macd():
     assert hist_diff <= expected_precision
 
 
+def test_macd_len():
+    """
+    Ensure that MACD calculation results in a sequence 
+    with expected length.
+    """
+    macd = MacdFactory(tf.H4)
+    quantity = macd.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { macd })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    macd = analyser.get('macd_h4')
+    assert len(macd) == expected_len
+
+
 def test_sma():
     """
     Ensure that calculated SMA with period of 9 
@@ -96,6 +122,32 @@ def test_sma():
     assert sma_diff <= expected_precision
 
 
+def test_sma_len():
+    """
+    Ensure that SMA calculation results in a sequence 
+    with expected length.
+    """
+    sma = SMAFactory(tf.H4, CLOSE, 9)
+    quantity = sma.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { sma })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    sma = analyser.get('sma_h4')
+    assert len(sma) == expected_len
+
+
 def test_ema_9():
     """
     Ensure that calculated EMA with period of 9 
@@ -127,6 +179,32 @@ def test_ema_9():
     ema_diff = ema_diff.quantize(expected_precision, ROUND_HALF_UP)
 
     assert ema_diff <= expected_precision
+
+
+def test_ema_9_len():
+    """
+    Ensure that EMA calculation with period of 9 
+    results in a sequence with expected length.
+    """
+    ema = EMAFactory(tf.H4, CLOSE, 9)
+    quantity = ema.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { ema })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    ema = analyser.get('ema_h4')
+    assert len(ema) == expected_len
 
 
 def test_ema_100():
@@ -197,6 +275,34 @@ def test_atr():
     assert atr_diff <= expected_precision
 
 
+def test_atr_len():
+    """
+    Ensure that ATR calculation results in a sequence 
+    with expected length.
+    """
+    atr = ATRFactory(tf.H4)
+    quantity = atr.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, HIGH, quantity)
+    analyser_buffer.reserve(tf.H4, LOW, quantity)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { atr })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    atr = analyser.get('atr_h4')
+    assert len(atr) == expected_len
+
+
 def test_rsi():
     """
     Ensure that calculated RSI with period of 14 
@@ -228,6 +334,32 @@ def test_rsi():
     rsi_diff = rsi_diff.quantize(expected_precision, ROUND_HALF_UP)
 
     assert rsi_diff <= expected_precision
+
+
+def test_rsi_len():
+    """
+    Ensure that RSI calculation results in a sequence 
+    with expected length.
+    """
+    rsi = RSIFactory(tf.H4)
+    quantity = rsi.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { rsi })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    rsi = analyser.get('rsi_h4')
+    assert len(rsi) == expected_len
 
 
 def test_bbands():
@@ -275,6 +407,32 @@ def test_bbands():
     assert upper_band_diff <= expected_precision
     assert mid_band_diff <= expected_precision
     assert lower_band_diff <= expected_precision
+
+
+def test_bbands_len():
+    """
+    Ensure that BBANDS calculation results in a sequence 
+    with expected length.
+    """
+    bbands = BbandsFactory(tf.H4)
+    quantity = bbands.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { bbands })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    bbands = analyser.get('bbands_h4')
+    assert len(bbands) == expected_len
 
 
 def test_dmi():
@@ -326,6 +484,34 @@ def test_dmi():
     assert neg_di_diff <= expected_precision
 
 
+def test_dmi_len():
+    """
+    Ensure that DMI calculation results in a sequence 
+    with expected length.
+    """
+    dmi = DMIFactory(tf.H4)
+    quantity = dmi.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, HIGH, quantity)
+    analyser_buffer.reserve(tf.H4, LOW, quantity)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { dmi })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    dmi = analyser.get("dmi_h4")
+    assert len(dmi) == expected_len
+
+
 def test_adx():
     """
     Ensure that calculated ADX value match expected 
@@ -359,6 +545,34 @@ def test_adx():
     adx_diff = adx_diff.quantize(expected_precision, ROUND_HALF_UP)
 
     assert adx_diff <= expected_precision
+
+
+def test_adx_len():
+    """
+    Ensure that ADX calculation results in a sequence 
+    with expected length.
+    """
+    adx = ADXFactory(tf.H4)
+    quantity = adx.indicator_params[0].quantity
+    expected_len = quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.H4, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.H4, HIGH, quantity)
+    analyser_buffer.reserve(tf.H4, LOW, quantity)
+    analyser_buffer.reserve(tf.H4, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { adx })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    adx = analyser.get("adx_h4")
+    assert len(adx) == expected_len
 
 
 def test_classic_pivot():
@@ -434,6 +648,34 @@ def test_classic_pivot():
     assert r2_diff <= expected_precision
     assert r3_diff <= expected_precision
     assert r4_diff <= expected_precision
+
+
+def test_classic_pivot_len():
+    """
+    Ensure that PIVOT (classic) calculation results 
+    in a sequence with expected length.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=CLASSIC_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+    expected_len = quantity - 1
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get("pivot_d1")
+    assert len(pivot) == expected_len
 
 
 def test_traditional_pivot():
@@ -521,6 +763,34 @@ def test_traditional_pivot():
     assert r5_diff <= expected_precision
 
 
+def test_traditional_pivot_len():
+    """
+    Ensure that PIVOT (traditional) calculation results 
+    in a sequence with expected length.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=TRADITIONAL_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+    expected_len = quantity - 1
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get("pivot_d1")
+    assert len(pivot) == expected_len
+
+
 def test_fibonacci_pivot():
     """
     Ensure that calculated PIVOT values (fibonacci) with daily period
@@ -584,3 +854,31 @@ def test_fibonacci_pivot():
     assert r1_diff <= expected_precision
     assert r2_diff <= expected_precision
     assert r3_diff <= expected_precision
+
+
+def test_fibonacci_pivot_len():
+    """
+    Ensure that PIVOT (fibonacci) calculation results 
+    in a sequence with expected length.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=FIBONACCI_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+    expected_len = quantity - 1
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get("pivot_d1")
+    assert len(pivot) == expected_len

@@ -129,6 +129,13 @@ class TraditionalPivotPoints(IndicatorResultSequence[TraditionalPivotPointsItem]
                                           self.r3[index], self.r4[index],
                                           self.r5[index])
 
+    def __len__(self) -> int:
+        return min(len(self.pivot), 
+                   len(self.s1), len(self.s2), 
+                   len(self.s3), len(self.s4), len(self.s5),
+                   len(self.r1), len(self.r2), 
+                   len(self.r3), len(self.r4), len(self.r5))
+
     def __repr__(self) -> str:
         return (f"TraditionalPivotPoints(pivot={self.pivot}, "
                 f"s1={self.s1}, s2={self.s2}, "
@@ -185,6 +192,11 @@ class ClassicPivotPoints(IndicatorResultSequence[ClassicPivotPointsItem]):
                                       self.r1[index], self.r2[index], 
                                       self.r3[index], self.r4[index])
 
+    def __len__(self) -> int:
+        return min(len(self.pivot), 
+                   len(self.s1), len(self.s2), len(self.s3), len(self.s4),
+                   len(self.r1), len(self.r2), len(self.r3), len(self.r4))
+
     def __repr__(self) -> str:
         return (f"ClassicPivotPoints(pivot={self.pivot}, "
                 f"s1={self.s1}, s2={self.s2}, "
@@ -237,10 +249,15 @@ class FibonacciPivotPoints(IndicatorResultSequence[FibonacciPivotPointsItem]):
                                         self.r1[index], self.r2[index], 
                                         self.r3[index])
 
+    def __len__(self) -> int:
+        return min(len(self.pivot), 
+                   len(self.s1), len(self.s2), len(self.s3),
+                   len(self.r1), len(self.r2), len(self.r3))
+
     def __repr__(self) -> str:
         return (f"FibonacciPivotPoints(pivot={self.pivot}, "
                 f"s1={self.s1}, s2={self.s2}, s3={self.s3}, "
-                f"r1={self.r1}, r2={self.r2}, r3={self.r3})"
+                f"r1={self.r1}, r2={self.r2}, r3={self.r3})")
 
 
 PivotPointsSequence = t.TypeVar('PivotPointsSequence',

@@ -51,6 +51,11 @@ class BbandsResultSequence(IndicatorResultSequence[BbandsResultItem]):
                                 self.middle_band[index], 
                                 self.lower_band[index])
 
+    def __len__(self) -> int:
+        return min(len(self.upper_band), 
+                   len(self.middle_band), 
+                   len(self.lower_band))
+
     def __repr__(self) -> str:
         return (f"BbandsResultSequence(upper_band={self.upper_band}, "
                 f"middle_band={self.middle_band}, "

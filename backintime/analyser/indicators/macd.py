@@ -57,6 +57,9 @@ class MacdResultSequence(IndicatorResultSequence[MacdResultItem]):
                               self.signal[index], 
                               self.hist[index])
 
+    def __len__(self) -> int:
+        return min(len(self.macd), len(self.signal), len(self.hist))
+
     def __repr__(self) -> str:
         return (f"MacdResultSequence(macd={self.macd}, "
                 f"signal={self.signal}, hist={self.hist})")
