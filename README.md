@@ -13,10 +13,21 @@ The smaller timeframe is used, the more accurate the results will be.
 - The same data can be represented in various timeframes  
     (few short candles is used to represent longer one)
 - Market, Limit, Take Profit, Take Profit Limit, Stop Loss, Stop Loss Limit orders management
-- Builtin support for MA, EMA, MACD, BBANDS, RSI, ATR, ADX, DMI
+- Builtin indicators. See [list](#indicators).
 - Trading statistics (win rate, profit/loss, avg. profit, etc.) with FIFO, LIFO or ACVO Profit/Loss estimation algorithms
 - Export orders, trades and statistics to csv
 
+
+## Indicators
+- MA - Moving Average
+- EMA - Exponential Moving Average
+- MACD - Moving Average Convergence Divergence
+- BBANDS - Bollinger Bands
+- RSI - Relative Strength Index
+- ATR - Average True Range
+- ADX - Average Directional Movement Index
+- DMI - Directional Movement Indicator
+- PIVOT - Pivot Points (Traditional, Fibonacci or Classic)
 
 ## License
 

@@ -10,6 +10,10 @@ from backintime.analyser.indicators.rsi import RSIFactory
 from backintime.analyser.indicators.bbands import BbandsFactory
 from backintime.analyser.indicators.dmi import DMIFactory
 from backintime.analyser.indicators.adx import ADXFactory
+from backintime.analyser.indicators.pivot import PivotPointsFactory
+from backintime.analyser.indicators.pivot import CLASSIC_PIVOT
+from backintime.analyser.indicators.pivot import TRADITIONAL_PIVOT
+from backintime.analyser.indicators.pivot import FIBONACCI_PIVOT
 from backintime.analyser.indicators.constants import HIGH, LOW, CLOSE
 from backintime.timeframes import Timeframes as tf
 from backintime.timeframes import estimate_open_time
@@ -355,3 +359,228 @@ def test_adx():
     adx_diff = adx_diff.quantize(expected_precision, ROUND_HALF_UP)
 
     assert adx_diff <= expected_precision
+
+
+def test_classic_pivot():
+    """
+    Ensure that calculated PIVOT values (classic) with daily period
+    match expected with at least 2 floating points precision,
+    using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
+    as reference values.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=CLASSIC_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    expected_pivot = Decimal('16363.75')
+    expected_s1 = Decimal('16178.78')
+    expected_s2 = Decimal('15915.04')
+    expected_s3 = Decimal('15466.33')
+    expected_s4 = Decimal('15017.62')
+    expected_r1 = Decimal('16627.49')
+    expected_r2 = Decimal('16812.46')
+    expected_r3 = Decimal('17261.17')
+    expected_r4 = Decimal('17709.88')
+    expected_precision = Decimal('0.01')
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get_last("pivot_d1")
+    pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
+    pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s1_diff = (Decimal(pivot.s1) - expected_s1).copy_abs()
+    s1_diff = s1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s2_diff = (Decimal(pivot.s2) - expected_s2).copy_abs()
+    s2_diff = s2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s3_diff = (Decimal(pivot.s3) - expected_s3).copy_abs()
+    s3_diff = s3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s4_diff = (Decimal(pivot.s4) - expected_s4).copy_abs()
+    s4_diff = s4_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r1_diff = (Decimal(pivot.r1) - expected_r1).copy_abs()
+    r1_diff = r1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r2_diff = (Decimal(pivot.r2) - expected_r2).copy_abs()
+    r2_diff = r2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r3_diff = (Decimal(pivot.r3) - expected_r3).copy_abs()
+    r3_diff = r3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r4_diff = (Decimal(pivot.r4) - expected_r4).copy_abs()
+    r4_diff = r4_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    assert pivot_diff <= expected_precision
+    assert s1_diff <= expected_precision
+    assert s2_diff <= expected_precision
+    assert s3_diff <= expected_precision
+    assert s4_diff <= expected_precision
+    assert r1_diff <= expected_precision
+    assert r2_diff <= expected_precision
+    assert r3_diff <= expected_precision
+    assert r4_diff <= expected_precision
+
+
+def test_traditional_pivot():
+    """
+    Ensure that calculated PIVOT values (traditional) with daily period
+    match expected with at least 2 floating points precision,
+    using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
+    as reference values.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=TRADITIONAL_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    expected_pivot = Decimal('16363.75')
+    expected_s1 = Decimal('16178.78')
+    expected_s2 = Decimal('15915.04')
+    expected_s3 = Decimal('15730.07')
+    expected_s4 = Decimal('15545.11')
+    expected_s5 = Decimal('15360.15')
+    expected_r1 = Decimal('16627.49')
+    expected_r2 = Decimal('16812.46')
+    expected_r3 = Decimal('17076.20')
+    expected_r4 = Decimal('17339.95')
+    expected_r5 = Decimal('17603.70')
+    expected_precision = Decimal('0.01')
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get_last("pivot_d1")
+    pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
+    pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s1_diff = (Decimal(pivot.s1) - expected_s1).copy_abs()
+    s1_diff = s1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s2_diff = (Decimal(pivot.s2) - expected_s2).copy_abs()
+    s2_diff = s2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s3_diff = (Decimal(pivot.s3) - expected_s3).copy_abs()
+    s3_diff = s3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s4_diff = (Decimal(pivot.s4) - expected_s4).copy_abs()
+    s4_diff = s4_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s5_diff = (Decimal(pivot.s5) - expected_s5).copy_abs()
+    s5_diff = s5_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r1_diff = (Decimal(pivot.r1) - expected_r1).copy_abs()
+    r1_diff = r1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r2_diff = (Decimal(pivot.r2) - expected_r2).copy_abs()
+    r2_diff = r2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r3_diff = (Decimal(pivot.r3) - expected_r3).copy_abs()
+    r3_diff = r3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r4_diff = (Decimal(pivot.r4) - expected_r4).copy_abs()
+    r4_diff = r4_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r5_diff = (Decimal(pivot.r5) - expected_r5).copy_abs()
+    r5_diff = r5_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    assert pivot_diff <= expected_precision
+    assert s1_diff <= expected_precision
+    assert s2_diff <= expected_precision
+    assert s3_diff <= expected_precision
+    assert s4_diff <= expected_precision
+    assert s5_diff <= expected_precision
+    assert r1_diff <= expected_precision
+    assert r2_diff <= expected_precision
+    assert r3_diff <= expected_precision
+    assert r4_diff <= expected_precision
+    assert r5_diff <= expected_precision
+
+
+def test_fibonacci_pivot():
+    """
+    Ensure that calculated PIVOT values (fibonacci) with daily period
+    match expected with at least 2 floating points precision,
+    using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
+    as reference values.
+    """
+    pivot = PivotPointsFactory(tf.D1, pivot_type=FIBONACCI_PIVOT)
+    quantity = pivot.indicator_params[0].quantity
+
+    test_file = 'test_h4.csv'
+    until = datetime.fromisoformat('2022-12-01 00:00+00:00')
+    since = estimate_open_time(until, tf.D1, -quantity)
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
+    candles = candles.create(since, until)
+
+    analyser_buffer = AnalyserBuffer(since)
+    analyser_buffer.reserve(tf.D1, HIGH, quantity)
+    analyser_buffer.reserve(tf.D1, LOW, quantity)
+    analyser_buffer.reserve(tf.D1, CLOSE, quantity)
+    analyser = Analyser(analyser_buffer, { pivot })
+
+    expected_pivot = Decimal('16363.75')
+    expected_s1 = Decimal('16192.34')
+    expected_s2 = Decimal('16086.44')
+    expected_s3 = Decimal('15915.04')
+    expected_r1 = Decimal('16535.15')
+    expected_r2 = Decimal('16641.05')
+    expected_r3 = Decimal('16812.46')
+    expected_precision = Decimal('0.01')
+
+    for candle in candles:
+        analyser_buffer.update(candle)
+
+    pivot = analyser.get_last("pivot_d1")
+    pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
+    pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s1_diff = (Decimal(pivot.s1) - expected_s1).copy_abs()
+    s1_diff = s1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s2_diff = (Decimal(pivot.s2) - expected_s2).copy_abs()
+    s2_diff = s2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    s3_diff = (Decimal(pivot.s3) - expected_s3).copy_abs()
+    s3_diff = s3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r1_diff = (Decimal(pivot.r1) - expected_r1).copy_abs()
+    r1_diff = r1_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r2_diff = (Decimal(pivot.r2) - expected_r2).copy_abs()
+    r2_diff = r2_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    r3_diff = (Decimal(pivot.r3) - expected_r3).copy_abs()
+    r3_diff = r3_diff.quantize(expected_precision, ROUND_HALF_UP)
+
+    assert pivot_diff <= expected_precision
+    assert s1_diff <= expected_precision
+    assert s2_diff <= expected_precision
+    assert s3_diff <= expected_precision
+    assert r1_diff <= expected_precision
+    assert r2_diff <= expected_precision
+    assert r3_diff <= expected_precision
