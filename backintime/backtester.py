@@ -24,6 +24,11 @@ UNTIL = PrefetchOptions.PREFETCH_UNTIL
 
 
 class Backtester:
+    """
+    Test trading strategy on historical data.
+    `strategy_t` designates which strategy to test, 
+    and `data_provider_factory` - which data to use.
+    """
     def __init__(self,
                  strategy_t: t.Type[TradingStrategy],
                  data_provider_factory: DataProviderFactory):

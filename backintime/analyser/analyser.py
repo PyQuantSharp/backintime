@@ -129,6 +129,7 @@ class MarketDataInfo(MarketData):
 
 
 class Analyser:
+    """Indicators calculation."""
     def __init__(self, buffer: AnalyserBuffer):
         self._market_data = MarketDataInfo(buffer)
 

@@ -17,6 +17,32 @@ from .broker.base import (
 
 
 class TradingStrategy(ABC):
+    """
+    Base class for trading strategies. 
+    Strategy must provide algorithm implementation in `tick` method, 
+    which runs each time a new candle closes.
+
+    In runtime, strategy has access to `broker`, `analyser` and `candles`.
+        - `broker` - Manages orders in a simulated
+            market environment. The broker executes/activates orders
+            whose conditions fits the market.
+        - `analyser` - Performs indicators calculation.
+        - `candles` - Provides the last candle representation 
+            for various timeframes. It is useful for checking 
+            properties of a candle on one timeframe (H1, for example),
+            while having data on another (for instance, M1).
+
+    `TradingStrategy` also has several class attributes:
+        - `title` - title of a strategy
+        - `indicators` - Set of indicators params used in a strategy. 
+            This is useful to infer how many market data is needed to store 
+            to be able to calculate indicators at any time.
+        - `candle_timeframes` - Set of timeframes whose candles may be
+            requested during strategy run.
+
+    There is no need to access or modify these class attributes
+    from inside the strategy, normally.
+    """
     title = ''
     indicators: t.Set[t.Tuple[IndicatorParam]] = set()
     candle_timeframes: t.Set[Timeframes] = set()
