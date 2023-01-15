@@ -31,8 +31,7 @@ PREFETCH_NONE = PrefetchOptions.PREFETCH_NONE
 def _get_indicators_params(
         strategy_t: t.Type[TradingStrategy]) -> t.List[IndicatorParam]:
     """Get list of all indicators params of the strategy."""
-    params = map(lambda x: x.indicator_params, strategy_t.indicators)
-    return list(chain.from_iterable(params))
+    return list(chain.from_iterable(strategy_t.indicators))
 
 
 def _reserve_space(analyser_buffer: AnalyserBuffer, 

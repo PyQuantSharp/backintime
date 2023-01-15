@@ -48,7 +48,7 @@ class Backtester:
                                                  self._data_provider_factory,
                                                  prefetch_option,
                                                  since)
-        analyser = Analyser(analyser_buffer, self._strategy_t.indicators)
+        analyser = Analyser(analyser_buffer)
         # Create shared buffer for `Candles`
         timeframes = self._strategy_t.candle_timeframes
         candles_buffer = CandlesBuffer(since, timeframes)

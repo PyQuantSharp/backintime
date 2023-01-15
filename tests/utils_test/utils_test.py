@@ -6,7 +6,7 @@ from backintime.trading_strategy import TradingStrategy
 from backintime.timeframes import Timeframes as tf
 from backintime.data.csv import CSVCandlesFactory
 from backintime.analyser.analyser import Analyser
-from backintime.analyser.indicators.sma import SMAFactory as sma
+from backintime.analyser.indicators.sma import sma_params as sma
 from backintime.backtester import Backtester
 from backintime.utils import (
     prefetch_values, 
@@ -42,9 +42,9 @@ def test_prefetch_until(stumb_strategy):
 
     analyser_buffer, date = prefetch_values(stumb_strategy, candles, 
                                             PREFETCH_UNTIL, until)
-    analyser = Analyser(analyser_buffer, stumb_strategy.indicators)
+    analyser = Analyser(analyser_buffer)
 
-    sma = analyser.get_last("sma_h4")
+    sma = analyser.sma(tf.H4)[-1]
     sma_diff = (Decimal(sma) - expected_sma).copy_abs()
     sma_diff = sma_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -66,9 +66,9 @@ def test_prefetch_since(stumb_strategy):
 
     analyser_buffer, date = prefetch_values(stumb_strategy, candles, 
                                             PREFETCH_SINCE, since)
-    analyser = Analyser(analyser_buffer, stumb_strategy.indicators)
+    analyser = Analyser(analyser_buffer)
 
-    sma = analyser.get_last("sma_h4")
+    sma = analyser.sma(tf.H4)[-1]
     sma_diff = (Decimal(sma) - expected_sma).copy_abs()
     sma_diff = sma_diff.quantize(expected_precision, ROUND_HALF_UP)
 

@@ -2,6 +2,7 @@ import numpy as np
 import typing as t
 from collections import abc
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from dataclasses import dataclass
 from backintime.timeframes import Timeframes
 from .constants import CandleProperties
@@ -31,57 +32,18 @@ class IndicatorResultSequence(abc.Sequence, t.Generic[ResultItem]):
         pass
 
 
-ResultSequence = t.TypeVar("ResultSequence",
-                           bound=t.Union[IndicatorResultSequence, np.ndarray])
-
-
-class Indicator(ABC):
-    @abstractmethod
-    def __call__(self) -> ResultSequence:
-        pass
-
-
 class MarketData(ABC):
     @abstractmethod
     def get_values(self, 
                    timeframe: Timeframes, 
                    candle_property: CandleProperties, 
-                   quantity: int):
+                   limit: int) -> t.Sequence[Decimal]:
         pass
 
 
-class BaseIndicator(Indicator):
-    def __init__(self, market_data: MarketData):
-        self._market_data = market_data
-
-    @property
-    def market_data(self) -> MarketData:
-        return self._market_data
-
-
-@dataclass
+@dataclass(frozen=True)
 class IndicatorParam:
     timeframe: Timeframes
     candle_property: CandleProperties
-    quantity: t.Optional[int] = None
+    quantity: int
 
-
-class IndicatorFactory(ABC):
-    @property
-    @abstractmethod
-    def indicator_name(self) -> str:
-        """
-        Get the name of the indicator to be created.
-        Instances with different timeframes must have different names.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def indicator_params(self) -> t.Sequence[IndicatorParam]:
-        """Get a list of params of the indicator to be created."""
-        pass
-
-    @abstractmethod
-    def create(self, market_data: MarketData) -> BaseIndicator:
-        pass

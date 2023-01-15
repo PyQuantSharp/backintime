@@ -5,13 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 from backintime.timeframes import Timeframes
 from .constants import HIGH, LOW, CLOSE
-from .base import (
-    MarketData,
-    BaseIndicator, 
-    IndicatorParam,
-    IndicatorFactory,
-    IndicatorResultSequence
-)
+from .base import MarketData, IndicatorParam, IndicatorResultSequence
 
 
 @dataclass
@@ -51,26 +45,6 @@ class FibonacciPivotPointsItem:
     r1:     numpy.float64
     r2:     numpy.float64
     r3:     numpy.float64
-
-
-class PivotPointsTypes(Enum):
-    TRADITIONAL_PIVOT = "TRADITIONAL"
-    CLASSIC_PIVOT = "CLASSIC"
-    FIBONACCI_PIVOT = "FIBONACCI"
-
-
-TRADITIONAL_PIVOT = PivotPointsTypes.TRADITIONAL_PIVOT
-CLASSIC_PIVOT = PivotPointsTypes.CLASSIC_PIVOT
-FIBONACCI_PIVOT = PivotPointsTypes.FIBONACCI_PIVOT
-
-
-class UnexpectedPivotPointsType(Exception):
-    def __init__(self, 
-                 pivot_type: t.Any, 
-                 supported: t.Iterable[PivotPointsTypes]):
-        message = (f"Unexpected pivot points type `{pivot_type}`. "
-                   f"Supported types are: {supported}.")
-        super().__init__(message)
 
 
 class TraditionalPivotPoints(IndicatorResultSequence[TraditionalPivotPointsItem]):
@@ -260,146 +234,116 @@ class FibonacciPivotPoints(IndicatorResultSequence[FibonacciPivotPointsItem]):
                 f"r1={self.r1}, r2={self.r2}, r3={self.r3})")
 
 
-PivotPointsSequence = t.TypeVar('PivotPointsSequence',
-                                bound=t.Union[TraditionalPivotPoints,
-                                              ClassicPivotPoints,
-                                              FibonacciPivotPoints])
-
-
 def typical_price(highs: pd.Series, lows: pd.Series, 
                         close: pd.Series) -> pd.Series:
     return (highs + lows + close) / 3
 
 
-class PivotPoints(BaseIndicator):
-    def __init__(self, 
-                 market_data: MarketData,
-                 timeframe: Timeframes,
-                 period: int,
-                 pivot_type: PivotPointsTypes):
-        self._timeframe = timeframe
-        self._period = period
-        self._quantity = period + 1
-        self._pivot_type = pivot_type
-        super().__init__(market_data)
+def pivot(market_data: MarketData, timeframe: Timeframes,
+            period: int = 15) -> TraditionalPivotPoints:
+    quantity = period + 1
+    highs = market_data.get_values(timeframe, HIGH, quantity)
+    highs = highs[:-1]   # or 1:?
+    highs = pd.Series(highs, dtype=numpy.float64)
 
-    def __call__(self) -> PivotPointsSequence:
-        market_data = self.market_data
-        timeframe = self._timeframe
-        qty = self._quantity
+    lows = market_data.get_values(timeframe, LOW, quantity)
+    lows = lows[:-1]
+    lows = pd.Series(lows, dtype=numpy.float64)
 
-        highs = market_data.get_values(timeframe, HIGH, qty)
-        highs = highs[:-1]   # or 1:?
-        highs = pd.Series(highs, dtype=numpy.float64)
+    close = market_data.get_values(timeframe, CLOSE, quantity)
+    close = close[:-1]
+    close = pd.Series(close, dtype=numpy.float64)
 
-        lows = market_data.get_values(timeframe, LOW, qty)
-        lows = lows[:-1]
-        lows = pd.Series(lows, dtype=numpy.float64)
+    pivot = typical_price(highs, lows, close)  
+    # TRADITIONAL
+    s1 = (pivot * 2) - highs
+    s2 = pivot - (highs - lows)
+    s3 = lows - (2 * (highs - pivot))
+    s4 = lows - (3 * (highs - pivot))
+    s5 = lows - (4 * (highs - pivot))
 
-        close = market_data.get_values(timeframe, CLOSE, qty)
-        close = close[:-1]
-        close = pd.Series(close, dtype=numpy.float64)
-        
-        if self._pivot_type is TRADITIONAL_PIVOT:
-            return self._traditional_pivot_points(highs, lows, close)
-        elif self._pivot_type is CLASSIC_PIVOT:
-            return self._classic_pivot_points(highs, lows, close)
-        elif self._pivot_type is FIBONACCI_PIVOT:
-            return self._fibonacci_pivot_points(highs, lows, close)
-        else:
-            supported = (TRADITIONAL_PIVOT, CLASSIC_PIVOT, FIBONACCI_PIVOT)
-            raise UnexpectedPivotPointsType(self._pivot_type, 
-                                            supported)
+    r1 = (pivot * 2) - lows
+    r2 = pivot + (highs - lows)
+    r3 = highs + (2 * (pivot - lows))
+    r4 = highs + (3 * (pivot - lows))
+    r5 = highs + (4 * (pivot - lows))
 
-    def _traditional_pivot_points(
-                self, 
-                highs: pd.Series, 
-                lows: pd.Series, 
-                close: pd.Series) -> TraditionalPivotPoints:
-        pivot = typical_price(highs, lows, close)  
-        # TRADITIONAL
-        s1 = (pivot * 2) - highs
-        s2 = pivot - (highs - lows)
-        s3 = lows - (2 * (highs - pivot))
-        s4 = lows - (3 * (highs - pivot))
-        s5 = lows - (4 * (highs - pivot))
+    return TraditionalPivotPoints(pivot.values, 
+                                  s1.values, s2.values, s3.values,
+                                  s4.values, s5.values, 
+                                  r1.values, r2.values, r3.values, 
+                                  r4.values, r5.values)
 
-        r1 = (pivot * 2) - lows
-        r2 = pivot + (highs - lows)
-        r3 = highs + (2 * (pivot - lows))
-        r4 = highs + (3 * (pivot - lows))
-        r5 = highs + (4 * (pivot - lows))
 
-        return TraditionalPivotPoints(pivot.values, 
-                                      s1.values, s2.values, s3.values,
-                                      s4.values, s5.values, 
-                                      r1.values, r2.values, r3.values, 
-                                      r4.values, r5.values)
+def pivot_fib(market_data: MarketData, timeframe: Timeframes, 
+                period: int = 15) -> FibonacciPivotPoints:
+    quantity = period + 1
+    highs = market_data.get_values(timeframe, HIGH, quantity)
+    highs = highs[:-1]   # or 1:?
+    highs = pd.Series(highs, dtype=numpy.float64)
 
-    def _classic_pivot_points(self, 
-                              highs: pd.Series, 
-                              lows: pd.Series, 
-                              close: pd.Series) -> ClassicPivotPoints: 
-        pivot = typical_price(highs, lows, close)        
-        # CLASSIC
-        s1 = (pivot * 2) - highs
-        s2 = pivot - (highs - lows)
-        s3 = pivot - 2 * (highs - lows)
-        s4 = pivot - 3 * (highs - lows)
+    lows = market_data.get_values(timeframe, LOW, quantity)
+    lows = lows[:-1]
+    lows = pd.Series(lows, dtype=numpy.float64)
 
-        r1 = (pivot * 2) - lows
-        r2 = pivot + (highs - lows)
-        r3 = pivot + 2 * (highs - lows)
-        r4 = pivot + 3 * (highs - lows)
+    close = market_data.get_values(timeframe, CLOSE, quantity)
+    close = close[:-1]
+    close = pd.Series(close, dtype=numpy.float64)
 
-        return ClassicPivotPoints(pivot.values, 
-                                  s1.values, s2.values, 
-                                  s3.values, s4.values, 
-                                  r1.values, r2.values, 
-                                  r3.values, r4.values)
-
-    def _fibonacci_pivot_points(self, 
-                                highs: pd.Series, 
-                                lows: pd.Series, 
-                                close: pd.Series) -> FibonacciPivotPoints:
-        pivot = typical_price(highs, lows, close)
+    pivot = typical_price(highs, lows, close)
         # FIBONACCI
-        s1 = pivot - 0.382 * (highs - lows)
-        s2 = pivot - 0.618 * (highs - lows)
-        s3 = pivot - (highs - lows)
+    s1 = pivot - 0.382 * (highs - lows)
+    s2 = pivot - 0.618 * (highs - lows)
+    s3 = pivot - (highs - lows)
 
-        r1 = pivot + 0.382 * (highs - lows)
-        r2 = pivot + 0.618 * (highs - lows)
-        r3 = pivot + (highs - lows)
+    r1 = pivot + 0.382 * (highs - lows)
+    r2 = pivot + 0.618 * (highs - lows)
+    r3 = pivot + (highs - lows)
 
-        return FibonacciPivotPoints(pivot.values, 
-                                    s1.values, s2.values, s3.values,
-                                    r1.values, r2.values, r3.values)
+    return FibonacciPivotPoints(pivot.values, 
+                                s1.values, s2.values, s3.values,
+                                r1.values, r2.values, r3.values)
 
 
-class PivotPointsFactory(IndicatorFactory):
-    def __init__(self, 
-                 timeframe: Timeframes,
-                 period: int = 15,
-                 pivot_type: PivotPointsTypes = TRADITIONAL_PIVOT,
-                 name: str = ''):
-        self.timeframe = timeframe
-        self.period = period
-        self.pivot_type = pivot_type
-        self._name = name or f"pivot_{str.lower(timeframe.name)}"
+def pivot_classic(market_data: MarketData, timeframe: Timeframes, 
+                    period: int = 15) -> ClassicPivotPoints:
+    quantity = period + 1
+    highs = market_data.get_values(timeframe, HIGH, quantity)
+    highs = highs[:-1]   # or 1:?
+    highs = pd.Series(highs, dtype=numpy.float64)
 
-    @property
-    def indicator_name(self) -> str:
-        return self._name
+    lows = market_data.get_values(timeframe, LOW, quantity)
+    lows = lows[:-1]
+    lows = pd.Series(lows, dtype=numpy.float64)
 
-    @property
-    def indicator_params(self) -> t.Sequence[IndicatorParam]:
-        return [
-            IndicatorParam(self.timeframe, HIGH, self.period + 1),
-            IndicatorParam(self.timeframe, LOW, self.period + 1),
-            IndicatorParam(self.timeframe, CLOSE, self.period + 1)
-        ]
+    close = market_data.get_values(timeframe, CLOSE, quantity)
+    close = close[:-1]
+    close = pd.Series(close, dtype=numpy.float64)
 
-    def create(self, market_data: MarketData) -> PivotPoints:
-        return PivotPoints(market_data, self.timeframe, 
-                           self.period, self.pivot_type)
+    pivot = typical_price(highs, lows, close)        
+    # CLASSIC
+    s1 = (pivot * 2) - highs
+    s2 = pivot - (highs - lows)
+    s3 = pivot - 2 * (highs - lows)
+    s4 = pivot - 3 * (highs - lows)
+
+    r1 = (pivot * 2) - lows
+    r2 = pivot + (highs - lows)
+    r3 = pivot + 2 * (highs - lows)
+    r4 = pivot + 3 * (highs - lows)
+
+    return ClassicPivotPoints(pivot.values, 
+                              s1.values, s2.values, 
+                              s3.values, s4.values, 
+                              r1.values, r2.values, 
+                              r3.values, r4.values)
+
+
+def pivot_params(timeframe: Timeframes,
+                 period: int = 15) -> t.Tuple[IndicatorParam]:
+    """Get list of PIVOT params."""
+    return (
+        IndicatorParam(timeframe, HIGH, period + 1),
+        IndicatorParam(timeframe, LOW, period + 1),
+        IndicatorParam(timeframe, CLOSE, period + 1)
+    )

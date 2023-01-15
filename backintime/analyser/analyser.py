@@ -1,10 +1,29 @@
+import numpy
 import typing as t
-
+from decimal import Decimal
 from collections import deque
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from itertools import islice
 from backintime.timeframes import Timeframes, estimate_close_time
+
+from .indicators.base import MarketData
+from .indicators.adx import adx
+from .indicators.atr import atr
+from .indicators.bbands import bbands, BbandsResultSequence
+from .indicators.dmi import dmi, DMIResultSequence
+from .indicators.ema import ema
+from .indicators.macd import macd, MacdResultSequence
+from .indicators.rsi import rsi
+from .indicators.sma import sma
+from .indicators.pivot import (
+    pivot,
+    pivot_fib,
+    pivot_classic,
+    TraditionalPivotPoints, 
+    FibonacciPivotPoints,
+    ClassicPivotPoints
+)
 from .indicators.constants import (
     CandleProperties, 
     OPEN, 
@@ -13,12 +32,7 @@ from .indicators.constants import (
     CLOSE,
     VOLUME
 )
-from .indicators.base import (
-    Indicator, 
-    IndicatorFactory, 
-    ResultSequence, 
-    MarketData
-)
+
 
 
 class AnalyserBuffer:
@@ -52,7 +66,7 @@ class AnalyserBuffer:
     def get_values(self, 
                    timeframe: Timeframes, 
                    candle_property: CandleProperties,
-                   limit: int) -> list:
+                   limit: int) -> t.List[Decimal]:
         """
         Get at most `limit` values of `candle_property` 
         for `timeframe`.
@@ -110,35 +124,66 @@ class MarketDataInfo(MarketData):
     def get_values(self, 
                    timeframe: Timeframes, 
                    candle_property: CandleProperties, 
-                   quantity: int) -> list:
-        return self._data.get_values(timeframe, candle_property, quantity)
-
-
-class IndicatorNotFound(Exception):
-    def __init__(self, indicator_name: str):
-        super().__init__(f"Indicator {indicator_name} was not found")
+                   limit: int) -> t.Sequence[Decimal]:
+        return self._data.get_values(timeframe, candle_property, limit)
 
 
 class Analyser:
-    def __init__(self,
-                 buffer: AnalyserBuffer,
-                 indicator_factories: t.Set[IndicatorFactory]):
-        market_data = MarketDataInfo(buffer)
-        self._indicators: t.Dict[str, Indicator] = {
-            factory.indicator_name : factory.create(market_data) 
-                for factory in indicator_factories
-        }
+    def __init__(self, buffer: AnalyserBuffer):
+        self._market_data = MarketDataInfo(buffer)
 
-    def get(self, indicator_name: str) -> ResultSequence:
-        """Get sequence of indicator values."""
-        indicator = self._indicators.get(indicator_name)
-        if not indicator:
-            raise IndicatorNotFound(indicator_name)
-        return indicator()
+    def sma(self, 
+            timeframe: Timeframes,
+            candle_property: CandleProperties = CLOSE,
+            period: int = 9) -> numpy.ndarray:
+        return sma(self._market_data, timeframe, candle_property, period)
 
-    def get_last(self, indicator_name: str) -> t.Any:
-        """Get the last indicator value."""
-        indicator = self._indicators.get(indicator_name)
-        if not indicator:
-            raise IndicatorNotFound(indicator_name)
-        return indicator()[-1]
+    def ema(self, 
+            timeframe: Timeframes,
+            candle_property: CandleProperties = CLOSE,
+            period: int = 9) -> numpy.ndarray:
+        return ema(self._market_data, timeframe, candle_property, period)
+
+    def adx(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        return adx(self._market_data, timeframe, period)
+
+    def atr(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        return atr(self._market_data, timeframe, period)
+
+    def rsi(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        return rsi(self._market_data, timeframe, period)
+
+    def bbands(self, 
+               timeframe: Timeframes,
+               candle_property: CandleProperties = CLOSE,
+               period: int = 20,
+               deviation_quotient: int = 2) -> BbandsResultSequence:
+        return bbands(self._market_data, timeframe, 
+                      candle_property, period, deviation_quotient)
+
+    def dmi(self, timeframe: Timeframes,
+                period: int = 14) -> DMIResultSequence:
+        return dmi(self._market_data, timeframe, period)
+
+    def macd(self, 
+             timeframe: Timeframes,
+             fastperiod: int = 12,
+             slowperiod: int = 26,
+             signalperiod: int = 9) -> MacdResultSequence:
+        return macd(self._market_data, 
+                    timeframe, fastperiod, slowperiod, signalperiod)
+
+    def pivot(self, 
+              timeframe: Timeframes,
+              period: int = 15) -> TraditionalPivotPoints:
+        return pivot(self._market_data, timeframe, period)
+
+    def pivot_fib(self, 
+                  timeframe: Timeframes,
+                  period: int = 15) -> FibonacciPivotPoints:
+        return pivot_fib(self._market_data, timeframe, period)
+
+    def pivot_classic(self, 
+                      timeframe: Timeframes,
+                      period: int = 15) -> ClassicPivotPoints:
+        return pivot_classic(self._market_data, timeframe, period)

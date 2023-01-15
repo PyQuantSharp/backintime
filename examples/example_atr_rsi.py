@@ -22,17 +22,17 @@ class AtrRsiStrategy(TradingStrategy):
 
     def tick(self):
         if not self.position:
-            rsi_d1 = self.analyser.get('rsi_d1')
+            rsi_d1 = self.analyser.rsi(tf.D1)[-1]
             if rsi_d1 > 50:
                 current_candle = self.candles.get(tf.H4)
                 price = current_candle.close
-                atr_h4 = self.analyser.get('atr_h4')
+                atr_h4 = self.analyser.atr(tf.H4)[-1]
                 if atr_h4 >= price*0.02:
                     self.last_buy = self.buy()
 
         elif self.position:
-            rsi_h4 = self.analyser.get('rsi_h4')
-            atr_h4 = self.analyser.get('atr_h4')
+            rsi_h4 = self.analyser.rsi(tf.H4)[-1]
+            atr_h4 = self.analyser.atr(tf.H4)[-1]
             price = self.last_buy.fill_price
             if rsi_h4 <= 50 or atr_h4 < price*0.02:
                 self.sell()

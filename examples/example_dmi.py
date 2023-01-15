@@ -28,7 +28,7 @@ class DMIStrategy(TradingStrategy):
     indicators = { dmi(tf.H4) }
 
     def tick(self):
-        dmi = self.analyser.get("dmi_h4")
+        dmi = self.analyser.dmi(tf.H4)
         if not self.position and dmi_buy_signal(dmi)
             self.buy()
 

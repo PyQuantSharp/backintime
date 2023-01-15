@@ -5,7 +5,7 @@ from decimal import Decimal
 from .candles import Candles
 from .timeframes import Timeframes
 from .analyser.analyser import Analyser
-from .analyser.indicators.base import IndicatorFactory
+from .analyser.indicators.base import IndicatorParam
 from .broker_proxy import BrokerProxy, OrderInfo, LimitOrderInfo
 from .broker.base import (
     OrderSide,
@@ -18,7 +18,7 @@ from .broker.base import (
 
 class TradingStrategy(ABC):
     title = ''
-    indicators: t.Set[IndicatorFactory] = set()
+    indicators: t.Set[t.Tuple[IndicatorParam]] = set()
     candle_timeframes: t.Set[Timeframes] = set()
 
     def __init__(self, 

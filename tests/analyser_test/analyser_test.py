@@ -2,18 +2,15 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from backintime.data.csv import CSVCandlesFactory
 from backintime.analyser.analyser import Analyser, AnalyserBuffer
-from backintime.analyser.indicators.macd import MacdFactory
-from backintime.analyser.indicators.sma import SMAFactory
-from backintime.analyser.indicators.ema import EMAFactory
-from backintime.analyser.indicators.atr import ATRFactory
-from backintime.analyser.indicators.rsi import RSIFactory
-from backintime.analyser.indicators.bbands import BbandsFactory
-from backintime.analyser.indicators.dmi import DMIFactory
-from backintime.analyser.indicators.adx import ADXFactory
-from backintime.analyser.indicators.pivot import PivotPointsFactory
-from backintime.analyser.indicators.pivot import CLASSIC_PIVOT
-from backintime.analyser.indicators.pivot import TRADITIONAL_PIVOT
-from backintime.analyser.indicators.pivot import FIBONACCI_PIVOT
+from backintime.analyser.indicators.macd import macd_params
+from backintime.analyser.indicators.sma import sma_params
+from backintime.analyser.indicators.ema import ema_params
+from backintime.analyser.indicators.atr import atr_params
+from backintime.analyser.indicators.rsi import rsi_params
+from backintime.analyser.indicators.bbands import bbands_params
+from backintime.analyser.indicators.dmi import dmi_params
+from backintime.analyser.indicators.adx import adx_params
+from backintime.analyser.indicators.pivot import pivot_params
 from backintime.analyser.indicators.constants import HIGH, LOW, CLOSE
 from backintime.timeframes import Timeframes as tf
 from backintime.timeframes import estimate_open_time
@@ -26,8 +23,8 @@ def test_macd():
     using valid MACD for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    macd = MacdFactory(tf.H4)
-    quantity = macd.indicator_params[0].quantity
+    params = macd_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -37,7 +34,7 @@ def test_macd():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { macd })
+    analyser = Analyser(analyser_buffer)
 
     expected_macd = Decimal('151.30')
     expected_signal = Decimal('66.56')
@@ -47,7 +44,7 @@ def test_macd():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    macd = analyser.get_last('macd_h4')
+    macd = analyser.macd(tf.H4)[-1]
 
     macd_diff = (Decimal(macd.macd) - expected_macd).copy_abs()
     macd_diff = macd_diff.quantize(expected_precision, ROUND_HALF_UP)
@@ -68,8 +65,8 @@ def test_macd_len():
     Ensure that MACD calculation results in a sequence 
     with expected length.
     """
-    macd = MacdFactory(tf.H4)
-    quantity = macd.indicator_params[0].quantity
+    params = macd_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -80,12 +77,12 @@ def test_macd_len():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { macd })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    macd = analyser.get('macd_h4')
+    macd = analyser.macd(tf.H4)
     assert len(macd) == expected_len
 
 
@@ -96,8 +93,8 @@ def test_sma():
     using valid SMA for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    sma = SMAFactory(tf.H4, CLOSE, 9)
-    quantity = sma.indicator_params[0].quantity
+    params = sma_params(tf.H4, CLOSE, 9)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -107,7 +104,7 @@ def test_sma():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { sma })
+    analyser = Analyser(analyser_buffer)
 
     expected_sma = Decimal('16773.72')
     expected_precision = Decimal('0.01')
@@ -115,7 +112,7 @@ def test_sma():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    sma = analyser.get_last('sma_h4')
+    sma = analyser.sma(tf.H4, period=9)[-1]
     sma_diff = (Decimal(sma) - expected_sma).copy_abs()
     sma_diff = sma_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -127,8 +124,8 @@ def test_sma_len():
     Ensure that SMA calculation results in a sequence 
     with expected length.
     """
-    sma = SMAFactory(tf.H4, CLOSE, 9)
-    quantity = sma.indicator_params[0].quantity
+    params = sma_params(tf.H4, CLOSE, 9)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -139,12 +136,12 @@ def test_sma_len():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { sma })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    sma = analyser.get('sma_h4')
+    sma = analyser.sma(tf.H4, period=9)
     assert len(sma) == expected_len
 
 
@@ -155,8 +152,8 @@ def test_ema_9():
     using valid EMA for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    ema = EMAFactory(tf.H4, CLOSE, 9)
-    quantity = ema.indicator_params[0].quantity
+    params = ema_params(tf.H4, CLOSE, 9)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -166,7 +163,7 @@ def test_ema_9():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { ema })
+    analyser = Analyser(analyser_buffer)
 
     expected_ema = Decimal('16833.64')
     expected_precision = Decimal('0.01')
@@ -174,7 +171,7 @@ def test_ema_9():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    ema = analyser.get_last('ema_h4')
+    ema = analyser.ema(tf.H4, period=9)[-1]
     ema_diff = (Decimal(ema) - expected_ema).copy_abs()
     ema_diff = ema_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -186,8 +183,8 @@ def test_ema_9_len():
     Ensure that EMA calculation with period of 9 
     results in a sequence with expected length.
     """
-    ema = EMAFactory(tf.H4, CLOSE, 9)
-    quantity = ema.indicator_params[0].quantity
+    params = ema_params(tf.H4, CLOSE, 9)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -198,12 +195,12 @@ def test_ema_9_len():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { ema })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    ema = analyser.get('ema_h4')
+    ema = analyser.ema(tf.H4, period=9)
     assert len(ema) == expected_len
 
 
@@ -214,8 +211,8 @@ def test_ema_100():
     using valid EMA for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    ema = EMAFactory(tf.H4, CLOSE, 100)
-    quantity = ema.indicator_params[0].quantity
+    params = ema_params(tf.H4, CLOSE, 100)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -225,7 +222,7 @@ def test_ema_100():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { ema })
+    analyser = Analyser(analyser_buffer)
 
     expected_ema = Decimal('16814.00')
     expected_precision = Decimal('0.01')
@@ -233,7 +230,7 @@ def test_ema_100():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    ema = analyser.get_last('ema_h4')
+    ema = analyser.ema(tf.H4, period=100)[-1]
     ema_diff = (Decimal(ema) - expected_ema).copy_abs()
     ema_diff = ema_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -247,8 +244,8 @@ def test_atr():
     using valid ATR for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    atr = ATRFactory(tf.H4)
-    quantity = atr.indicator_params[0].quantity
+    params = atr_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -260,7 +257,7 @@ def test_atr():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { atr })
+    analyser = Analyser(analyser_buffer)
 
     expected_atr = Decimal('211.47')
     expected_precision = Decimal('0.01')
@@ -268,7 +265,7 @@ def test_atr():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    atr = analyser.get_last('atr_h4')
+    atr = analyser.atr(tf.H4)[-1]
     atr_diff = (Decimal(atr) - expected_atr).copy_abs()
     atr_diff = atr_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -280,8 +277,8 @@ def test_atr_len():
     Ensure that ATR calculation results in a sequence 
     with expected length.
     """
-    atr = ATRFactory(tf.H4)
-    quantity = atr.indicator_params[0].quantity
+    params = atr_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -294,12 +291,12 @@ def test_atr_len():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { atr })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    atr = analyser.get('atr_h4')
+    atr = analyser.atr(tf.H4)
     assert len(atr) == expected_len
 
 
@@ -310,8 +307,8 @@ def test_rsi():
     using valid RSI for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    rsi = RSIFactory(tf.H4)
-    quantity = rsi.indicator_params[0].quantity
+    params = rsi_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -321,7 +318,7 @@ def test_rsi():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { rsi })
+    analyser = Analyser(analyser_buffer)
 
     expected_rsi = Decimal('75.35')
     expected_precision = Decimal('0.01')
@@ -329,7 +326,7 @@ def test_rsi():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    rsi = analyser.get_last('rsi_h4')
+    rsi = analyser.rsi(tf.H4)[-1]
     rsi_diff = (Decimal(rsi) - expected_rsi).copy_abs()
     rsi_diff = rsi_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -341,8 +338,8 @@ def test_rsi_len():
     Ensure that RSI calculation results in a sequence 
     with expected length.
     """
-    rsi = RSIFactory(tf.H4)
-    quantity = rsi.indicator_params[0].quantity
+    params = rsi_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -353,12 +350,12 @@ def test_rsi_len():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { rsi })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    rsi = analyser.get('rsi_h4')
+    rsi = analyser.rsi(tf.H4)
     assert len(rsi) == expected_len
 
 
@@ -369,8 +366,8 @@ def test_bbands():
     using valid BBANDS for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    bbands = BbandsFactory(tf.H4)
-    quantity = bbands.indicator_params[0].quantity
+    params = bbands_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -380,7 +377,7 @@ def test_bbands():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { bbands })
+    analyser = Analyser(analyser_buffer)
 
     expected_middle_band = Decimal('16519.69')
     expected_upper_band = Decimal('17138.52')
@@ -390,7 +387,7 @@ def test_bbands():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    bbands = analyser.get_last('bbands_h4')
+    bbands = analyser.bbands(tf.H4)[-1]
 
     upper_band = bbands.upper_band
     upper_band_diff = (Decimal(upper_band) - expected_upper_band).copy_abs()
@@ -414,8 +411,8 @@ def test_bbands_len():
     Ensure that BBANDS calculation results in a sequence 
     with expected length.
     """
-    bbands = BbandsFactory(tf.H4)
-    quantity = bbands.indicator_params[0].quantity
+    params = bbands_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -426,12 +423,12 @@ def test_bbands_len():
 
     analyser_buffer = AnalyserBuffer(since)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { bbands })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    bbands = analyser.get('bbands_h4')
+    bbands = analyser.bbands(tf.H4)
     assert len(bbands) == expected_len
 
 
@@ -442,8 +439,8 @@ def test_dmi():
     using valid DMI for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    dmi = DMIFactory(tf.H4)
-    quantity = dmi.indicator_params[0].quantity
+    params = dmi_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -455,7 +452,7 @@ def test_dmi():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { dmi })
+    analyser = Analyser(analyser_buffer)
 
     expected_adx = Decimal('27.1603')
     expected_positive_di = Decimal('34.2968')
@@ -465,7 +462,7 @@ def test_dmi():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    dmi = analyser.get_last("dmi_h4")
+    dmi = analyser.dmi(tf.H4)[-1]
 
     positive_di = dmi.positive_di
     pos_di_diff = (Decimal(positive_di) - expected_positive_di).copy_abs()
@@ -489,8 +486,8 @@ def test_dmi_len():
     Ensure that DMI calculation results in a sequence 
     with expected length.
     """
-    dmi = DMIFactory(tf.H4)
-    quantity = dmi.indicator_params[0].quantity
+    params = dmi_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -503,12 +500,12 @@ def test_dmi_len():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { dmi })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    dmi = analyser.get("dmi_h4")
+    dmi = analyser.dmi(tf.H4)
     assert len(dmi) == expected_len
 
 
@@ -519,8 +516,8 @@ def test_adx():
     using valid ADX for 2022-30-11 23:59 UTC, H4 (Binance) 
     as a reference value.
     """
-    adx = ADXFactory(tf.H4)
-    quantity = adx.indicator_params[0].quantity
+    params = adx_params(tf.H4)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -532,7 +529,7 @@ def test_adx():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { adx })
+    analyser = Analyser(analyser_buffer)
 
     expected_adx = Decimal('27.1603')
     expected_precision = Decimal('0.01')
@@ -540,7 +537,7 @@ def test_adx():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    adx = analyser.get_last("adx_h4")
+    adx = analyser.adx(tf.H4)[-1]
     adx_diff = (Decimal(adx) - expected_adx).copy_abs()
     adx_diff = adx_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -552,8 +549,8 @@ def test_adx_len():
     Ensure that ADX calculation results in a sequence 
     with expected length.
     """
-    adx = ADXFactory(tf.H4)
-    quantity = adx.indicator_params[0].quantity
+    params = adx_params(tf.H4)
+    quantity = params[0].quantity
     expected_len = quantity
 
     test_file = 'test_h4.csv'
@@ -566,12 +563,12 @@ def test_adx_len():
     analyser_buffer.reserve(tf.H4, HIGH, quantity)
     analyser_buffer.reserve(tf.H4, LOW, quantity)
     analyser_buffer.reserve(tf.H4, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { adx })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    adx = analyser.get("adx_h4")
+    adx = analyser.adx(tf.H4)
     assert len(adx) == expected_len
 
 
@@ -582,8 +579,8 @@ def test_classic_pivot():
     using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
     as reference values.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=CLASSIC_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -595,7 +592,7 @@ def test_classic_pivot():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     expected_pivot = Decimal('16363.75')
     expected_s1 = Decimal('16178.78')
@@ -611,7 +608,7 @@ def test_classic_pivot():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get_last("pivot_d1")
+    pivot = analyser.pivot_classic(tf.D1)[-1]
     pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
     pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -655,8 +652,8 @@ def test_classic_pivot_len():
     Ensure that PIVOT (classic) calculation results 
     in a sequence with expected length.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=CLASSIC_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
     expected_len = quantity - 1
 
     test_file = 'test_h4.csv'
@@ -669,12 +666,12 @@ def test_classic_pivot_len():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get("pivot_d1")
+    pivot = analyser.pivot_classic(tf.D1)
     assert len(pivot) == expected_len
 
 
@@ -685,8 +682,8 @@ def test_traditional_pivot():
     using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
     as reference values.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=TRADITIONAL_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -698,7 +695,7 @@ def test_traditional_pivot():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     expected_pivot = Decimal('16363.75')
     expected_s1 = Decimal('16178.78')
@@ -716,7 +713,7 @@ def test_traditional_pivot():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get_last("pivot_d1")
+    pivot = analyser.pivot(tf.D1)[-1]
     pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
     pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -768,8 +765,8 @@ def test_traditional_pivot_len():
     Ensure that PIVOT (traditional) calculation results 
     in a sequence with expected length.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=TRADITIONAL_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
     expected_len = quantity - 1
 
     test_file = 'test_h4.csv'
@@ -782,12 +779,12 @@ def test_traditional_pivot_len():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get("pivot_d1")
+    pivot = analyser.pivot(tf.D1)
     assert len(pivot) == expected_len
 
 
@@ -798,8 +795,8 @@ def test_fibonacci_pivot():
     using valid PIVOT for 2022-30-11 23:59 UTC, H4 (Binance) 
     as reference values.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=FIBONACCI_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
 
     test_file = 'test_h4.csv'
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
@@ -811,7 +808,7 @@ def test_fibonacci_pivot():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     expected_pivot = Decimal('16363.75')
     expected_s1 = Decimal('16192.34')
@@ -825,7 +822,7 @@ def test_fibonacci_pivot():
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get_last("pivot_d1")
+    pivot = analyser.pivot_fib(tf.D1)[-1]
     pivot_diff = (Decimal(pivot.pivot) - expected_pivot).copy_abs()
     pivot_diff = pivot_diff.quantize(expected_precision, ROUND_HALF_UP)
 
@@ -861,8 +858,8 @@ def test_fibonacci_pivot_len():
     Ensure that PIVOT (fibonacci) calculation results 
     in a sequence with expected length.
     """
-    pivot = PivotPointsFactory(tf.D1, pivot_type=FIBONACCI_PIVOT)
-    quantity = pivot.indicator_params[0].quantity
+    params = pivot_params(tf.D1)
+    quantity = params[0].quantity
     expected_len = quantity - 1
 
     test_file = 'test_h4.csv'
@@ -875,10 +872,10 @@ def test_fibonacci_pivot_len():
     analyser_buffer.reserve(tf.D1, HIGH, quantity)
     analyser_buffer.reserve(tf.D1, LOW, quantity)
     analyser_buffer.reserve(tf.D1, CLOSE, quantity)
-    analyser = Analyser(analyser_buffer, { pivot })
+    analyser = Analyser(analyser_buffer)
 
     for candle in candles:
         analyser_buffer.update(candle)
 
-    pivot = analyser.get("pivot_d1")
+    pivot = analyser.pivot_fib(tf.D1)
     assert len(pivot) == expected_len

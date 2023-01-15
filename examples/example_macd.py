@@ -11,7 +11,7 @@ class MacdStrategy(TradingStrategy):
     indicators = { macd(tf.H1) }
 
     def tick(self):
-        macd = self.analyser.get('macd_h1')
+        macd = self.analyser.macd(tf.H1)
         if not self.position and macd.crossover_up():
             self.buy()
         elif self.position and macd.crossover_down():

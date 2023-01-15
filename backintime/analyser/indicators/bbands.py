@@ -5,13 +5,7 @@ import typing as t
 from dataclasses import dataclass
 from backintime.timeframes import Timeframes
 from .constants import CandleProperties, CLOSE
-from .base import (
-    MarketData,
-    BaseIndicator, 
-    IndicatorFactory, 
-    IndicatorParam,
-    IndicatorResultSequence
-)
+from .base import MarketData, IndicatorParam, IndicatorResultSequence
 
 
 @dataclass
@@ -62,63 +56,30 @@ class BbandsResultSequence(IndicatorResultSequence[BbandsResultItem]):
                 f"lower_band={self.lower_band})")
 
 
-class BbandsIndicator(BaseIndicator):
-    def __init__(self, 
-                 market_data: MarketData,
-                 timeframe: Timeframes,
-                 candle_property: CandleProperties,
-                 period: int,
-                 deviation_quotient: int):
-        self._timeframe = timeframe
-        self._candle_property = candle_property
-        self._period = period
-        self._devq = deviation_quotient
-        self._quantity = period**2
-        super().__init__(market_data)
+def bbands(market_data: MarketData, 
+           timeframe: Timeframes,
+           candle_property: CandleProperties = CLOSE,
+           period: int = 20,
+           deviation_quotient: int = 2) -> BbandsResultSequence:
+    quantity = period**2
+    values = market_data.get_values(timeframe, candle_property, quantity)
+    values = pd.Series(values)
 
-    def __call__(self) -> BbandsResultSequence:
-        market_data = self.market_data
-        tf = self._timeframe
-        qty = self._quantity
-        values = market_data.get_values(tf, self._candle_property, qty)
-        values = pd.Series(values)
+    bbands = ta.volatility.BollingerBands(values, period, 
+                                          deviation_quotient)
+    upper_band = bbands.bollinger_hband().values
+    middle_band = bbands.bollinger_mavg().values
+    lower_band = bbands.bollinger_lband().values
 
-        bbands = ta.volatility.BollingerBands(values, 
-                                              self._period, 
-                                              self._devq)
-        upper_band = bbands.bollinger_hband().values
-        middle_band = bbands.bollinger_mavg().values
-        lower_band = bbands.bollinger_lband().values
-
-        return BbandsResultSequence(upper_band, middle_band, lower_band)
+    return BbandsResultSequence(upper_band, middle_band, lower_band)
 
 
-class BbandsFactory(IndicatorFactory):
-    def __init__(self, 
-                 timeframe: Timeframes,
-                 candle_property: CandleProperties = CLOSE,
-                 period: int = 20,
-                 deviation_quotient: int = 2,
-                 name: str = ''):
-        self.timeframe = timeframe
-        self.candle_property = candle_property
-        self.period = period
-        self.deviation_quotient = deviation_quotient
-        self._name = name or f"bbands_{str.lower(timeframe.name)}"
-
-    @property
-    def indicator_name(self) -> str:
-        return self._name
-
-    @property
-    def indicator_params(self) -> t.Sequence[IndicatorParam]:
-        return [
-            IndicatorParam(timeframe=self.timeframe, 
-                           candle_property=self.candle_property,
-                           quantity=self.period**2)
-        ]
-
-    def create(self, data: MarketData) -> BbandsIndicator:
-        return BbandsIndicator(data, self.timeframe, self.candle_property,
-                               self.period, self.deviation_quotient)
-
+def bbands_params(timeframe: Timeframes, 
+                  candle_property: CandleProperties = CLOSE,
+                  period: int = 20) -> t.Tuple[IndicatorParam]:
+    """Get list of BBANDS params."""
+    return (
+        IndicatorParam(timeframe=timeframe, 
+                       candle_property=candle_property,
+                       quantity=period**2),
+    )
