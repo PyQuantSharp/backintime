@@ -1,8 +1,8 @@
+import typing as t
 from datetime import datetime
-from backintime.backtester import Backtester
-from backintime.trading_strategy import TradingStrategy
+from backintime import TradingStrategy, Backtester
 from backintime.timeframes import Timeframes as tf
-from backintime.analyser.indicators.dmi import DMIFactory as dmi
+from backintime.indicator_params import DMI
 from backintime.analyser.indicators.dmi import DMIResultSequence
 from backintime.data.binance import BinanceCandlesFactory
 
@@ -25,7 +25,7 @@ class DMIStrategy(TradingStrategy):
     Sell if +DI < -DI or ADX decreases.
     """
     title = "Example DMI strategy"
-    indicators = { dmi(tf.H4) }
+    indicators = { DMI(tf.H4) }
 
     def tick(self):
         dmi = self.analyser.dmi(tf.H4)

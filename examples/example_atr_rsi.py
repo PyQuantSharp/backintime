@@ -1,19 +1,18 @@
 import typing as t
 from datetime import datetime
-from backintime.trading_strategy import TradingStrategy
+from backintime import TradingStrategy, Backtester
 from backintime.timeframes import Timeframes as tf
-from backintime.analyser.indicators import atr, rsi
+from backintime.indicator_params import ATR, RSI
 from backintime.data.binance import BinanceCandlesFactory
-from backintime.backtester import Backtester
 
 
 class AtrRsiStrategy(TradingStrategy):
     title = "Example ATR/RSI strategy"
     candle_timeframes = { tf.H4, tf.D1 }
     indicators = { 
-        atr(tf.H4), 
-        rsi(tf.H4), 
-        rsi(tf.D1) 
+        ATR(tf.H4), 
+        RSI(tf.H4), 
+        RSI(tf.D1) 
     }
 
     def __init__(self, broker, analyser, candles):
