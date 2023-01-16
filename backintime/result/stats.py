@@ -89,16 +89,27 @@ def _validate_sell_amount(sell_amount: Decimal, position: Decimal) -> None:
 
 
 def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
-    # Return stats with default values for empty trades list 
-    # or for trades list without sells.
+    """
+    Get stats such as Win Rate, Profit/Loss, Average Profit, etc.
+    Supports estimation in FIFO (First-In-First-Out), 
+    LIFO (Last-In-First-Out) or AVCO (Average Cost) algorithms.
+    The algorithm name specifies the order in which BUYs
+    must be considered to estimate profit or loss.
+
+    All these algorithms produce the same result if SELL
+    order always follows only one BUY.
+
+    Return stats with default values for empty trades list 
+    or for trades list without sells.
+    """
     if algorithm == 'FIFO':
         trades_profit = _fifo_profit(trades)
     elif algorithm == 'LIFO':
         trades_profit = _lifo_profit(trades)
-    elif algorithm == 'ACVO': 
-        trades_profit = _acvo_profit(trades)
+    elif algorithm == 'AVCO': 
+        trades_profit = _avco_profit(trades)
     else:
-        supported = ('FIFO', 'LIFO', 'ACVO')
+        supported = ('FIFO', 'LIFO', 'AVCO')
         raise UnexpectedProfitLossAlgorithm(algorithm, supported)
 
     if not len(trades_profit):
@@ -242,8 +253,8 @@ def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
     return trades_profit
 
 
-def _acvo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
-    """ACVO Profit/Loss calculation algorithm."""
+def _avco_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
+    """AVCO Profit/Loss calculation algorithm."""
     trades_profit: t.List[TradeProfit] = []
     position = []
 

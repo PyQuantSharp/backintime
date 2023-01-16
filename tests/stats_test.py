@@ -16,7 +16,7 @@ from backintime.result.stats import (
     TradeProfit,
     _fifo_profit, 
     _lifo_profit, 
-    _acvo_profit,
+    _avco_profit,
     UnexpectedProfitLossAlgorithm
 )
 
@@ -128,8 +128,8 @@ def test_lifo_profit_loss_empty_trades():
             not result is None and len(result) == 0
 
 
-def test_acvo_profit_loss(sample_trades):
-    """Test ACVO Profit/Loss calculation."""
+def test_avco_profit_loss(sample_trades):
+    """Test AVCO Profit/Loss calculation."""
     expected_profit = [
         TradeProfit(trade_id=2, order_id=2,
                     relative_profit=Decimal('0'),
@@ -139,7 +139,7 @@ def test_acvo_profit_loss(sample_trades):
                     absolute_profit=Decimal(20_000))
     ]
 
-    trades_profit = _acvo_profit(sample_trades)
+    trades_profit = _avco_profit(sample_trades)
     for estimated, expected in zip_longest(trades_profit, expected_profit):
         assert estimated is not None
         assert estimated.trade_id == expected.trade_id
@@ -150,8 +150,8 @@ def test_acvo_profit_loss(sample_trades):
         assert estimated_relative == expected_relative
 
 
-def test_acvo_profit_loss_empty_trades():
-    """Test ACVO Profit/Loss calculation with empty trades."""
+def test_avco_profit_loss_empty_trades():
+    """Test AVCO Profit/Loss calculation with empty trades."""
     exception_raised = False
     result = None
 

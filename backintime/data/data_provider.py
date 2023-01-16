@@ -8,7 +8,12 @@ from .candle import Candle
 
 
 class DataProvider(abc.Iterable):
-    """Provides candles in historical order."""
+    """
+    Provides candles in historical order.
+    `DataProvider` is an iterable object that 
+    can be created for specific date range (since, until);
+    Yields OHLCV candle during iteration.
+    """
     @property
     @abstractmethod
     def title(self) -> str:

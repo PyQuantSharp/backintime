@@ -91,6 +91,23 @@ class BacktestingStats:
 
 
 class BacktestingResult:
+    """
+    Represents backtesting result.
+
+    Stats such as Win Rate, Profit/Loss, Average Profit
+    can be obtained by calling `get_stats` method, which
+    supports estimation in FIFO (First-In-First-Out), 
+    LIFO (Last-In-First-Out) or AVCO (Average Cost) algorithms.
+    The algorithm name specifies the order in which BUYs
+    must be considered to estimate profit or loss.
+    All these algorithms produce the same result if SELL
+    order always follows only one BUY.
+
+    Orders, trades and stats can be exported to CSV file
+    using `export_orders`, `export_trades`, `exports_stats`
+    repectively, or via `export` - for exporting all 
+    with default file names.
+    """
     def __init__(self, 
                  strategy_title: str, 
                  data_provider: DataProvider,
@@ -155,6 +172,16 @@ class BacktestingResult:
         return self._orders_count
 
     def get_stats(self, algorithm: str) -> BacktestingStats:
+        """
+        Get stats such as Win Rate, Profit/Loss, Average Profit, etc.
+        Supports estimation in FIFO (First-In-First-Out), 
+        LIFO (Last-In-First-Out) or AVCO (Average Cost) algorithms.
+        The algorithm name specifies the order in which BUYs
+        must be considered to estimate profit or loss.
+
+        All these algorithms produce the same result if SELL
+        order always follows only one BUY.
+        """
         return BacktestingStats(self._strategy_title, 
                                 self._data_provider, 
                                 self._date, 
@@ -171,7 +198,7 @@ class BacktestingResult:
                      exclude_algorithms: t.Iterable[str] = set(),
                      delimiter=';') -> None:
         """Export stats to CSV file."""
-        stats_algorithms = {'FIFO', 'LIFO', 'ACVO'}
+        stats_algorithms = {'FIFO', 'LIFO', 'AVCO'}
         filename = filename or self._get_default_csv_filename('stats')
         algorithms = stats_algorithms.difference(exclude_algorithms)
         stats = [ get_stats(algo, self._trades) for algo in algorithms ]
