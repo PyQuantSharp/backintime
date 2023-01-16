@@ -37,10 +37,10 @@ prefetches market data if needed and runs the similar loop:
 
 ```py
 for candle in candles:
-	broker.update(candle)	# Review whether orders can be executed
-	analyser.update(candle)	# Store data for indicators calculation
-	candles.update(candle)	# Update candles on required timeframes
-	strategy.tick()			# Trading strategy logic here
+    broker.update(candle)   # Review whether orders can be executed
+    analyser.update(candle) # Store data for indicators calculation
+    candles.update(candle)  # Update candles on required timeframes
+    strategy.tick()         # Trading strategy logic here
 ```
 Short overview of the core concepts is given below.
 
@@ -93,6 +93,11 @@ All these algorithms produce the same result if SELL order always follows only o
 ## License
 
 MIT
+
+
+## Docs
+
+There is no documentation yet because the code is unstable. As for now, you can browse sources or type `help` in REPL. 
 
 
 ## Author

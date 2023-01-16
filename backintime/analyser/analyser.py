@@ -36,6 +36,7 @@ from .indicators.constants import (
 
 
 class AnalyserBuffer:
+    """Stores market data in a ring-buffer-like structures."""
     def __init__(self, start_time: datetime):
         self._start_time = start_time
         self._data: t.Dict[Timeframes, t.Dict] = {}
@@ -45,6 +46,9 @@ class AnalyserBuffer:
                 candle_property: CandleProperties,
                 quantity: int) -> None:
         """
+        Reserve space in a buffer for `quantity` values
+        of `candle_property` on `timeframe`.
+
         Won't take effect if candle property for the same `timeframe`
         has already been reserved with quantity >= `quantity`.
         """
