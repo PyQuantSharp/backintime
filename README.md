@@ -62,6 +62,23 @@ Strategy must provide algorithm implementation in `tick` method, which runs each
 Broker provides orders management in a simulated market environment. 
 The broker executes/activates orders whose conditions fits the market. 
 Supports Market, Limit, Take Profit, Take Profit Limit, Stop Loss, Stop Loss Limit orders.
+Order execution policy of builtin broker:
+
+- **Market orders**: 
+	All market orders will be executed when a new candle closes. 
+	The price of execution is the candle's OPEN price.
+
+- **Limit orders**: 
+    Each of the conditions from the following list will in turn be applied to the `order_price` of each order:
+        1) price == candle.OPEN
+        2) price >= candle.LOW and price <= candle.HIGH
+        3) price == candle.CLOSE
+    The order will be executed if the condition is true. 
+    The price of execution is the order's `order_price`.
+
+- **Take Profit/Stop Loss orders**: 
+    The activation conditions are essentially the same as for limit orders, but the conditions from the list are applied to order's `trigger_price`. 
+    When a TP/SL order is triggered, it will be treated as a market or limit order, depending on whether `order_price` is set for the order. 
 
 
 #### Analyser
@@ -90,14 +107,28 @@ The algorithm name specifies the order in which BUYs must be considered to estim
 All these algorithms produce the same result if SELL order always follows only one BUY.
 
 
-## License
+#### Prefetching
 
-MIT
+Indicators require a certain amount of data to get a correct result. For example, to calculate the SMA (simple moving average) with a period of 9, 9 values are required. 
+So, the strategy will get the wrong result of the SMA indicator, until 9 candles are accumulated.
+In order for the strategy to get the correct values right from the start, prefetching of market data is used. You can configure this behavior by choosing from the following options and passing it as `prefetch_option` argument to the `Backtester.run` method:
+- **PREFETCH_UNTIL** (default) - prefetch the required amount of data until `since` date; the amount of data required is calculated automatically. In this case, the strategy backtesting will be started from the `since` date. This option is convenient when market data is requested from the exchange API, because situations when the exchange does not have enough historical data are quite rare. 
+
+- **PREFETCH_SINCE** - prefetch the required amount of data from `since` date; the amount of data required for this is calculated automatically. In this case, the strategy backtesting will be launched starting from the dynamically calculated date. This option may be useful when working with a CSV file when you are not sure if it contains enough data before the `since` date. 
+
+- **PREFETCH_NONE** - Do not prefetch data.  
+
+Where `since` date is the value of the argument `since` passed to the `Backtester.run` method. 
 
 
 ## Docs
 
 There is no documentation yet because the code is unstable. As for now, you can browse sources or type `help` in REPL. 
+
+
+## License
+
+MIT
 
 
 ## Author
