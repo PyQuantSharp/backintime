@@ -43,6 +43,7 @@ class Backtester:
             maker_fee: str,
             taker_fee: str,
             prefetch_option: PrefetchOptions = UNTIL) -> BacktestingResult:
+        """Run backtesting."""
         # Create shared `Broker` for `BrokerProxy`
         start_money = Decimal(start_money)
         fees = FeesEstimator(Decimal(maker_fee), Decimal(taker_fee))

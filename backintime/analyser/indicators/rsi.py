@@ -10,6 +10,14 @@ from .base import MarketData, IndicatorParam
 
 def rsi(market_data: MarketData, timeframe: Timeframes,
             period: int = 14) -> numpy.ndarray:
+    """
+    Relative Strength Index (RSI).
+
+    Momentum oscillator that measures the speed and change 
+    of price movements. RSI oscillates between zero and 100. 
+    Traditionally, and according to Wilder, RSI is considered 
+    overbought when above 70 and oversold when below 30.
+    """
     quantity = period**2
     close = market_data.get_values(timeframe, CLOSE, quantity)
     close = pd.Series(close)

@@ -74,6 +74,7 @@ class DMIResultSequence(IndicatorResultSequence[DMIResultItem]):
 
 def dmi(market_data: MarketData, timeframe: Timeframes,
             period: int = 14) -> DMIResultSequence:
+    """Directional Movement Indicator (DMI)."""
     quantity = period**2
     highs = market_data.get_values(timeframe, HIGH, quantity)
     highs = pd.Series(highs, dtype=numpy.float64)

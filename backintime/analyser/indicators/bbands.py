@@ -61,6 +61,16 @@ def bbands(market_data: MarketData,
            candle_property: CandleProperties = CLOSE,
            period: int = 20,
            deviation_quotient: int = 2) -> BbandsResultSequence:
+    """
+    Bollinger Bands (BBANDS).
+
+    Bollinger Bands are volatility bands placed above 
+    and below a moving average.
+    Volatility is based on the standard deviation, 
+    which changes as volatility increases and decreases.
+    The bands automatically widen when volatility increases
+    and narrow when volatility decreases.
+    """
     quantity = period**2
     values = market_data.get_values(timeframe, candle_property, quantity)
     values = pd.Series(values)

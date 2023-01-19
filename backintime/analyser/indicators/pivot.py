@@ -241,6 +241,15 @@ def typical_price(highs: pd.Series, lows: pd.Series,
 
 def pivot(market_data: MarketData, timeframe: Timeframes,
             period: int = 15) -> TraditionalPivotPoints:
+    """
+    Tradtional Pivot Points.
+    https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+    Represents significant support and resistance levels 
+    that can be used to determine potential trades.
+    The pivot points come as a technical analysis indicator
+    calculated using a security’s high, low, and close.
+    """
     quantity = period + 1
     highs = market_data.get_values(timeframe, HIGH, quantity)
     highs = highs[:-1]   # or 1:?
@@ -277,6 +286,15 @@ def pivot(market_data: MarketData, timeframe: Timeframes,
 
 def pivot_fib(market_data: MarketData, timeframe: Timeframes, 
                 period: int = 15) -> FibonacciPivotPoints:
+    """
+    Fibonacci Pivot Points.
+    https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+    Represents significant support and resistance levels 
+    that can be used to determine potential trades.
+    The pivot points come as a technical analysis indicator
+    calculated using a security’s high, low, and close.
+    """
     quantity = period + 1
     highs = market_data.get_values(timeframe, HIGH, quantity)
     highs = highs[:-1]   # or 1:?
@@ -307,6 +325,15 @@ def pivot_fib(market_data: MarketData, timeframe: Timeframes,
 
 def pivot_classic(market_data: MarketData, timeframe: Timeframes, 
                     period: int = 15) -> ClassicPivotPoints:
+    """
+    Classic Pivot Points.
+    https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+    Represents significant support and resistance levels 
+    that can be used to determine potential trades.
+    The pivot points come as a technical analysis indicator
+    calculated using a security’s high, low, and close.
+    """
     quantity = period + 1
     highs = market_data.get_values(timeframe, HIGH, quantity)
     highs = highs[:-1]   # or 1:?

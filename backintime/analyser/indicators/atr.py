@@ -10,6 +10,7 @@ from .base import MarketData, IndicatorParam
 def atr(market_data: MarketData, 
         timeframe: Timeframes, 
         period: int = 14) -> numpy.ndarray:
+    """Average True Range (ATR)."""
     quantity = period**2
 
     highs = market_data.get_values(timeframe, HIGH, quantity)

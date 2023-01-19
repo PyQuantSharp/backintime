@@ -10,6 +10,7 @@ from .base import MarketData, IndicatorParam
 def ema(market_data: MarketData, timeframe: Timeframes,
             candle_property: CandleProperties = CLOSE,
             period: int = 9) -> numpy.ndarray:
+    """Exponential Moving Average (EMA)."""
     quantity = period**2
     values = market_data.get_values(timeframe, candle_property, quantity)
     values = pd.Series(values)

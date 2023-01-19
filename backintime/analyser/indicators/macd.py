@@ -64,6 +64,12 @@ def macd(market_data: MarketData,
          fastperiod: int = 12,
          slowperiod: int = 26,
          signalperiod: int = 9) -> MacdResultSequence:
+    """
+    Moving Average Convergence Divergence (MACD).
+
+    Trend-following momentum indicator that shows the 
+    relationship between two moving averages of prices.
+    """
     quantity = slowperiod * signalperiod
     close = market_data.get_values(timeframe, CLOSE, quantity)
     close = pd.Series(close)

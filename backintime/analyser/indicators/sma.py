@@ -11,6 +11,7 @@ def sma(market_data: MarketData,
         timeframe: Timeframes,
         candle_property: CandleProperties = CLOSE,
         period: int = 9) -> numpy.ndarray:
+    """Simple moving average, also known as 'MA'."""
     values = market_data.get_values(timeframe, candle_property, period)
     values = pd.Series(values)
     sma = ta.trend.SMAIndicator(values, period).sma_indicator()

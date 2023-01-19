@@ -80,6 +80,7 @@ class AnalyserBuffer:
         return list(islice(data, offset, data.maxlen))
 
     def update(self, candle) -> None:
+        """Update stored values in accordance with `candle`."""
         for timeframe, series in self._data.items():
             if candle.close_time > series['end_time']:
                 # Push new values
@@ -141,21 +142,41 @@ class Analyser:
             timeframe: Timeframes,
             candle_property: CandleProperties = CLOSE,
             period: int = 9) -> numpy.ndarray:
+        """Simple Moving Average, also known as 'MA'."""
         return sma(self._market_data, timeframe, candle_property, period)
 
     def ema(self, 
             timeframe: Timeframes,
             candle_property: CandleProperties = CLOSE,
             period: int = 9) -> numpy.ndarray:
+        """Exponential Moving Average (EMA)."""
         return ema(self._market_data, timeframe, candle_property, period)
 
     def adx(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        """
+        Average Directional Movement Index (ADX).
+
+        ADX does not indicate trend direction or momentum, 
+        only trend strength. 
+        Generally, ADX readings below 20 indicate trend weakness,
+        and readings above 40 indicate trend strength. 
+        An extremely strong trend is indicated by readings above 50.
+        """
         return adx(self._market_data, timeframe, period)
 
     def atr(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        """Average True Range (ATR)."""
         return atr(self._market_data, timeframe, period)
 
     def rsi(self, timeframe: Timeframes, period: int = 14) -> numpy.ndarray:
+        """
+        Relative Strength Index (RSI).
+
+        Momentum oscillator that measures the speed and change 
+        of price movements. RSI oscillates between zero and 100. 
+        Traditionally, and according to Wilder, RSI is considered 
+        overbought when above 70 and oversold when below 30.
+        """
         return rsi(self._market_data, timeframe, period)
 
     def bbands(self, 
@@ -163,11 +184,22 @@ class Analyser:
                candle_property: CandleProperties = CLOSE,
                period: int = 20,
                deviation_quotient: int = 2) -> BbandsResultSequence:
+        """
+        Bollinger Bands (BBANDS).
+
+        Bollinger Bands are volatility bands placed above 
+        and below a moving average.
+        Volatility is based on the standard deviation, 
+        which changes as volatility increases and decreases.
+        The bands automatically widen when volatility increases
+        and narrow when volatility decreases.
+        """
         return bbands(self._market_data, timeframe, 
                       candle_property, period, deviation_quotient)
 
     def dmi(self, timeframe: Timeframes,
                 period: int = 14) -> DMIResultSequence:
+        """Directional Movement Indicator (DMI)."""
         return dmi(self._market_data, timeframe, period)
 
     def macd(self, 
@@ -175,20 +207,53 @@ class Analyser:
              fastperiod: int = 12,
              slowperiod: int = 26,
              signalperiod: int = 9) -> MacdResultSequence:
+        """
+        Moving Average Convergence Divergence (MACD).
+
+        Trend-following momentum indicator that shows the 
+        relationship between two moving averages of prices.
+        """
         return macd(self._market_data, 
                     timeframe, fastperiod, slowperiod, signalperiod)
 
     def pivot(self, 
               timeframe: Timeframes,
               period: int = 15) -> TraditionalPivotPoints:
+        """
+        Tradtional Pivot Points.
+        https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+        Represents significant support and resistance levels 
+        that can be used to determine potential trades.
+        The pivot points come as a technical analysis indicator
+        calculated using a security’s high, low, and close.
+        """
         return pivot(self._market_data, timeframe, period)
 
     def pivot_fib(self, 
                   timeframe: Timeframes,
                   period: int = 15) -> FibonacciPivotPoints:
+        """
+        Fibonacci Pivot Points.
+        https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+        Represents significant support and resistance levels 
+        that can be used to determine potential trades.
+        The pivot points come as a technical analysis indicator
+        calculated using a security’s high, low, and close.
+        """
         return pivot_fib(self._market_data, timeframe, period)
 
     def pivot_classic(self, 
                       timeframe: Timeframes,
                       period: int = 15) -> ClassicPivotPoints:
+        """
+        Classic Pivot Points.
+        https://www.tradingview.com/support/solutions/43000521824-pivot-points-standard/
+
+        Represents significant support and resistance levels 
+        that can be used to determine potential trades.
+        The pivot points come as a technical analysis indicator
+        calculated using a security’s high, low, and close.
+        """
         return pivot_classic(self._market_data, timeframe, period)

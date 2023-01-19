@@ -11,6 +11,15 @@ from .constants import HIGH, LOW, CLOSE
 def adx(market_data: MarketData, 
         timeframe: Timeframes,
         period: int = 14) -> numpy.ndarray:
+    """
+    Average Directional Movement Index (ADX).
+
+    ADX does not indicate trend direction or momentum, 
+    only trend strength. 
+    Generally, ADX readings below 20 indicate trend weakness,
+    and readings above 40 indicate trend strength. 
+    An extremely strong trend is indicated by readings above 50.
+    """
     quantity = period**2
 
     highs = market_data.get_values(timeframe, HIGH, quantity)
