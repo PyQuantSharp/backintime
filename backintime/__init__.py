@@ -92,7 +92,7 @@ The algorithm name specifies the order in which BUYs
 must be considered to estimate profit or loss.
 
 All these algorithms produce the same result if SELL
-order always follows only one BUY.
+order always follows only one BUY with the same amount.
 
 
 Prefetching

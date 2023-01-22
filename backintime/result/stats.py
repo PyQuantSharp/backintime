@@ -97,7 +97,7 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
     must be considered to estimate profit or loss.
 
     All these algorithms produce the same result if SELL
-    order always follows only one BUY.
+    order always follows only one BUY with the same amount.
 
     Return stats with default values for empty trades list 
     or for trades list without sells.

@@ -101,7 +101,7 @@ class BacktestingResult:
     The algorithm name specifies the order in which BUYs
     must be considered to estimate profit or loss.
     All these algorithms produce the same result if SELL
-    order always follows only one BUY.
+    order always follows only one BUY with the same amount.
 
     Orders, trades and stats can be exported to CSV file
     using `export_orders`, `export_trades`, `exports_stats`
@@ -180,7 +180,7 @@ class BacktestingResult:
         must be considered to estimate profit or loss.
 
         All these algorithms produce the same result if SELL
-        order always follows only one BUY.
+        order always follows only one BUY with the same amount.
         """
         return BacktestingStats(self._strategy_title, 
                                 self._data_provider, 
