@@ -11,12 +11,12 @@ from backintime.broker.orders import (
     OrderType,
 )
 from backintime.result.stats import (
-    get_stats,
     Stats,
     TradeProfit,
-    _fifo_profit, 
-    _lifo_profit, 
-    _avco_profit,
+    get_stats,
+    fifo_profit,
+    lifo_profit, 
+    avco_profit,
     UnexpectedProfitLossAlgorithm
 )
 
@@ -28,25 +28,33 @@ def sample_trades() -> t.List[Trade]:
               order_type=OrderType.LIMIT,
               amount=Decimal(40_000),
               date_created=None,
-              order_price=Decimal(40_000)),
+              order_price=Decimal(40_000),
+              min_fiat=Decimal('0.01'),
+              min_crypto=Decimal('0.00000001')),
 
         Order(side=OrderSide.BUY,
               order_type=OrderType.LIMIT,
               amount=Decimal(50_000),
               date_created=None,
-              order_price=Decimal(50_000)),
+              order_price=Decimal(50_000),
+              min_fiat=Decimal('0.01'),
+              min_crypto=Decimal('0.00000001')),
 
         Order(side=OrderSide.SELL,
               order_type=OrderType.LIMIT,
               amount=Decimal(1),
               date_created=None,
-              order_price=Decimal(45_000)),
+              order_price=Decimal(45_000),
+              min_fiat=Decimal('0.01'),
+              min_crypto=Decimal('0.00000001')),
 
         Order(side=OrderSide.SELL,
               order_type=OrderType.LIMIT,
               amount=Decimal(1),
               date_created=None,
-              order_price=Decimal(65_000))
+              order_price=Decimal(65_000),
+              min_fiat=Decimal('0.01'),
+              min_crypto=Decimal('0.00000001'))
     ]
 
     for order in orders:
@@ -73,7 +81,7 @@ def test_fifo_profit_loss(sample_trades):
                     absolute_profit=Decimal(15_000))
     ]
 
-    trades_profit = _fifo_profit(sample_trades)
+    trades_profit = fifo_profit(sample_trades)
     for estimated, expected in zip_longest(trades_profit, expected_profit):
         assert estimated is not None
         assert estimated.trade_id == expected.trade_id
@@ -88,7 +96,7 @@ def test_fifo_profit_loss_empty_trades():
     result = None
 
     try:
-        result = _fifo_profit([])
+        result = fifo_profit([])
     except:
         exception_raised = True
     assert not exception_raised and \
@@ -106,7 +114,7 @@ def test_lifo_profit_loss(sample_trades):
                     absolute_profit=Decimal(25_000))
     ]
 
-    trades_profit = _lifo_profit(sample_trades)
+    trades_profit = lifo_profit(sample_trades)
     for estimated, expected in zip_longest(trades_profit, expected_profit):
         assert estimated is not None
         assert estimated.trade_id == expected.trade_id
@@ -121,7 +129,7 @@ def test_lifo_profit_loss_empty_trades():
     result = None
 
     try:
-        result = _lifo_profit([])
+        result = lifo_profit([])
     except:
         exception_raised = True
     assert not exception_raised and \
@@ -139,7 +147,7 @@ def test_avco_profit_loss(sample_trades):
                     absolute_profit=Decimal(20_000))
     ]
 
-    trades_profit = _avco_profit(sample_trades)
+    trades_profit = avco_profit(sample_trades)
     for estimated, expected in zip_longest(trades_profit, expected_profit):
         assert estimated is not None
         assert estimated.trade_id == expected.trade_id
@@ -156,7 +164,7 @@ def test_avco_profit_loss_empty_trades():
     result = None
 
     try:
-        result = _acvo_profit([])
+        result = avco_profit([])
     except:
         exception_raised = True
     assert not exception_raised and \

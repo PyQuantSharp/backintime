@@ -8,10 +8,10 @@ from backintime.broker.orders import OrderSide
 
 @dataclass
 class TradeProfit:
-    relative_profit: Decimal
-    absolute_profit: Decimal
     trade_id: int
     order_id: int
+    relative_profit: Decimal
+    absolute_profit: Decimal
 
 
 def _repr_profit(trade_profit: TradeProfit, percents_first=True) -> str:
@@ -103,11 +103,11 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
     or for trades list without sells.
     """
     if algorithm == 'FIFO':
-        trades_profit = _fifo_profit(trades)
+        trades_profit = fifo_profit(trades)
     elif algorithm == 'LIFO':
-        trades_profit = _lifo_profit(trades)
+        trades_profit = lifo_profit(trades)
     elif algorithm == 'AVCO': 
-        trades_profit = _avco_profit(trades)
+        trades_profit = avco_profit(trades)
     else:
         supported = ('FIFO', 'LIFO', 'AVCO')
         raise UnexpectedProfitLossAlgorithm(algorithm, supported)
@@ -180,6 +180,30 @@ class _PositionItem:    # BUY orders only
         self.quantity = quantity.quantize(Decimal('0.00000001'))
         self.fill_price = trade.order.fill_price
         self.trading_fee = trade.order.trading_fee
+        self._remaining_fee = trade.order.trading_fee
+        self._remaining_quantity = self.quantity
+
+    @property
+    def remaining_quantity(self):
+        return self._remaining_quantity
+
+    @remaining_quantity.setter
+    def remaining_quantity(self, value):
+        self._remaining_quantity = value
+
+    @property
+    def remaining_fee(self):
+        return self._remaining_fee
+
+    @remaining_fee.setter
+    def remaining_fee(self, value):
+        self._remaining_fee = value.quantize(Decimal('0.01'))
+
+    def __repr__(self) -> str:
+        return (f"PositionItem(amount={self.amount}, "
+                f"fill_price={self.fill_price}, "
+                f"remaining_quantity={self.remaining_quantity}, "
+                f"remaining_fee={self.remaining_fee})\n")
 
 
 def _get_gain(trade: Trade) -> Decimal: # SELL orders only
@@ -197,35 +221,43 @@ def _estimate_trade_profit(trade: Trade, position: Decimal) -> TradeProfit:
                        order_id=trade.order.order_id)
 
 
-def _fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
+def fifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
     """FIFO Profit/Loss calculation algorithm."""
     trades_profit: t.List[TradeProfit] = []
     position = deque()
 
     for trade in trades:
         if trade.order.order_side is OrderSide.BUY:
-            position.appendleft(_PositionItem(trade))
+            position.append(_PositionItem(trade))
         else:   # SELL
-            position_quantity = sum(x.quantity for x in position)
+            position_quantity = sum(x.remaining_quantity for x in position)
             sell_quantity = trade.order.amount
             _validate_sell_amount(sell_quantity, position_quantity)
             position_price = 0
 
-            while len(position) and position[0].quantity <= sell_quantity:
-                item = position.pop()
-                sell_quantity -= item.quantity 
-                position_price += item.amount + item.trading_fee
+            while len(position) and position[0].remaining_quantity <= sell_quantity:
+                item = position.popleft()
+                sell_quantity -= item.remaining_quantity
+                amount = item.remaining_quantity * item.fill_price
+                position_price += amount + item.remaining_fee
+
             if sell_quantity:
                 item = position[0]
-                item.quantity -= sell_quantity
-                position_price += sell_quantity * item.fill_price + item.trading_fee
+                quantity_ratio = sell_quantity/item.remaining_quantity
+                partial_fee =  quantity_ratio * item.trading_fee
+                partial_amount = sell_quantity * item.fill_price
+
+                item.remaining_quantity -= sell_quantity
+                item.remaining_fee -= partial_fee
+
+                position_price += partial_amount + partial_fee
 
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
 
 
-def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
+def lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
     """LIFO Profit/Loss calculation algorithm."""
     trades_profit: t.List[TradeProfit] = []
     position = deque()
@@ -234,26 +266,34 @@ def _lifo_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
         if trade.order.order_side is OrderSide.BUY:
             position.append(_PositionItem(trade))
         else:   # SELL
-            position_quantity = sum(x.quantity for x in position)
+            position_quantity = sum(x.remaining_quantity for x in position)
             sell_quantity = trade.order.amount
             _validate_sell_amount(sell_quantity, position_quantity)
             position_price = 0
 
-            while len(position) and position[-1].quantity <= sell_quantity:
+            while len(position) and position[-1].remaining_quantity <= sell_quantity:
                 item = position.pop()
-                sell_quantity -= item.quantity
-                position_price += item.amount + item.trading_fee
+                sell_quantity -= item.remaining_quantity
+                amount = item.remaining_quantity * item.fill_price
+                position_price += amount + item.remaining_fee
+
             if sell_quantity:
                 item = position[-1]
-                item.quantity -= sell_quantity
-                position_price += sell_quantity * item.fill_price + item.trading_fee
+                quantity_ratio = sell_quantity/item.remaining_quantity
+                partial_fee =  quantity_ratio * item.trading_fee
+                partial_amount = sell_quantity * item.fill_price
+
+                item.remaining_quantity -= sell_quantity
+                item.remaining_fee -= partial_fee
+
+                position_price += partial_amount + partial_fee
 
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
     return trades_profit
 
 
-def _avco_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
+def avco_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
     """AVCO Profit/Loss calculation algorithm."""
     trades_profit: t.List[TradeProfit] = []
     position = []
@@ -262,7 +302,7 @@ def _avco_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
         if trade.order.order_side is OrderSide.BUY:
             position.append(_PositionItem(trade))
         else:   # SELL
-            position_quantity = sum(x.quantity for x in position)
+            position_quantity = sum(x.remaining_quantity for x in position)
             sell_quantity = trade.order.amount
             _validate_sell_amount(sell_quantity, position_quantity)
             position_price = 0
@@ -282,18 +322,28 @@ def _avco_profit(trades: t.Iterable[Trade]) -> t.List[TradeProfit]:
                 values either way.
                 '''
                 even = sell_quantity/len(position) 
-                
-                for position_trade in position.copy():
-                    if position_trade.quantity <= even:
-                        position_price += position_trade.amount + position_trade.trading_fee
-                        sell_quantity -= position_trade.quantity
-                        position.remove(position_trade)
+
+                for item in position.copy():
+                    if item.remaining_quantity <= even:
+                        quantity = item.remaining_quantity
+                        fill_price = item.fill_price
+                        remaining_fee = item.remaining_fee
+                        amount = quantity * fill_price
+
+                        position_price += amount + remaining_fee
+                        sell_quantity -= quantity
+                        position.remove(item)
                         if len(position):   # prevent zero division
                             even = sell_quantity/len(position)
                     else:
-                        position_price += even * position_trade.fill_price + position_trade.trading_fee
+                        quantity_ratio = even/item.remaining_quantity
+                        partial_fee = quantity_ratio * item.remaining_fee
+                        partial_amount = even * item.fill_price
+                        position_price += partial_amount + partial_fee
+
                         sell_quantity -= even
-                        position_trade.quantity -= even
+                        item.remaining_quantity -= even
+                        item.remaining_fee -= partial_fee
 
             trade_profit = _estimate_trade_profit(trade, position_price)
             trades_profit.append(trade_profit)
