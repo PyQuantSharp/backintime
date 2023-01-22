@@ -44,12 +44,16 @@ class BacktestingStats:
         return self._stats.profit_loss_ratio
 
     @property
-    def win_loss_ratio(self) -> Decimal:
-        return self._stats.win_loss_ratio
+    def profit_factor(self) -> Decimal:
+        return self._stats.profit_factor
 
     @property
     def win_rate(self) -> Decimal:
         return self._stats.win_rate
+
+    @property
+    def win_loss_ratio(self) -> Decimal:
+        return self._stats.win_loss_ratio
 
     @property
     def wins_count(self) -> int:
@@ -60,19 +64,53 @@ class BacktestingStats:
         return self._stats.losses_count
 
     @property
+    def average_profit_all(self) -> Decimal:
+        """Average profit for all trades."""
+        return self._stats.average_profit_all
+
+    @property
+    def average_profit_all_percents(self) -> Decimal:
+        """Average profit for all trades in percents."""
+        return self._stats.average_profit_all_percents
+
+    @property
+    def average_profit(self) -> Decimal:
+        """Average profit for profit-making trades."""
+        return self._stats.average_profit
+
+    @property
+    def average_profit_percents(self) -> Decimal:
+        """Average profit for profit-making trades in percents."""
+        return self._stats.average_profit_percents
+
+    @property
+    def average_loss(self) -> Decimal:
+        """Average loss for loss-making trades."""
+        return self._stats.average_loss
+
+    @property
+    def average_loss_percents(self) -> Decimal:
+        """Average loss for loss-making trades in percents."""
+        return self._stats.average_loss_percents
+
+    @property
     def best_deal_relative(self) -> t.Optional[TradeProfit]:
+        """Best deal by relative gain."""
         return self._stats.best_deal_relative
 
     @property
     def best_deal_absolute(self) -> t.Optional[TradeProfit]:
+        """Best deal by absolute gain."""
         return self._stats.best_deal_absolute
 
     @property
     def worst_deal_relative(self) -> t.Optional[TradeProfit]:
+        """Worst deal by relative loss."""
         return self._stats.worst_deal_relative
 
     @property
     def worst_deal_absolute(self) -> t.Optional[TradeProfit]:
+        """Worst deal by absolute loss."""
         return self._stats.worst_deal_absolute
 
     def __repr__(self) -> str:

@@ -35,16 +35,27 @@ def _repr_profit(trade_profit: TradeProfit, percents_first=True) -> str:
                 f"Order#{trade_profit.order_id}")
 
 
+def _repr_percents(value: Decimal) -> str:
+    """Represent decimal value in percents format."""
+    return f"{value:+.2f}%" if not value.is_nan() else str(value)
+
+
 @dataclass
 class Stats:
     algorithm: str
     trades_profit: list
-    avg_profit: Decimal = Decimal('NaN')
-    win_rate: Decimal = Decimal('NaN')
     profit_loss_ratio: Decimal = Decimal('NaN')
+    profit_factor: Decimal = Decimal('NaN')
+    win_rate: Decimal = Decimal('NaN')
     win_loss_ratio: Decimal = Decimal('NaN')
     wins_count: int = 0
     losses_count: int = 0
+    average_profit_all: Decimal = Decimal('NaN')
+    average_profit_all_percents: Decimal = Decimal('NaN')
+    average_profit: Decimal = Decimal('NaN')
+    average_profit_percents: Decimal = Decimal('NaN')
+    average_loss: Decimal = Decimal('NaN')
+    average_loss_percents: Decimal = Decimal('NaN')
     best_deal_relative: t.Optional[TradeProfit] = None
     best_deal_absolute: t.Optional[TradeProfit] = None
     worst_deal_relative: t.Optional[TradeProfit] = None
@@ -56,13 +67,25 @@ class Stats:
         worst_deal_rel = _repr_profit(self.worst_deal_relative)
         worst_deal_abs = _repr_profit(self.worst_deal_absolute, False)
 
+        win_rate = f"{self.win_rate:.2f}%" if not self.win_rate.is_nan() \
+                    else str(self.win_rate) 
+        avg_profit_percents = _repr_percents(self.average_profit_percents)
+        avg_loss_percents = _repr_percents(self.average_loss_percents)
+        avg_profit_all_percents = _repr_percents(self.average_profit_all_percents)
+
         return (f"Profit/Loss algorithm: {self.algorithm}\n\n"
-                f"Avg. profit:\t{self.avg_profit:.2f}%\n"
                 f"Profit/Loss:\t{self.profit_loss_ratio:.2f}\n"
-                f"Win rate:\t{self.win_rate:.2f}%\n"
+                f"Profit Factor:\t{self.profit_factor:.2f}\n"
+                f"Win rate:\t{win_rate}\n"
                 f"Win/Loss:\t{self.win_loss_ratio:.2f}\n"
                 f"Wins count:\t{self.wins_count}\n"
                 f"Losses count:\t{self.losses_count}\n\n"
+                f"Avg. Profit (all trades): {self.average_profit_all:.2f}\n"
+                f"Avg. Profit (all trades), %: {avg_profit_all_percents}\n"
+                f"Avg. Profit (profit-making trades): {self.average_profit:.2f}\n"
+                f"Avg. Profit (profit-making trades), %: {avg_profit_percents}\n"
+                f"Avg. Loss (loss-making trades): {self.average_loss:.2f}\n"
+                f"Avg. Loss (loss-making trades), %: {avg_loss_percents}\n\n"
                 f"Best deal (relative change): {best_deal_rel}\n"
                 f"Best deal (absolute change): {best_deal_abs}\n"
                 f"Worst deal (relative change): {worst_deal_rel}\n"
@@ -112,14 +135,19 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
         supported = ('FIFO', 'LIFO', 'AVCO')
         raise UnexpectedProfitLossAlgorithm(algorithm, supported)
 
+    stats = Stats(algorithm=algorithm, trades_profit=trades_profit)
     if not len(trades_profit):
-        return Stats(algorithm=algorithm, trades_profit=trades_profit)
+        return stats
 
     wins_count = 0
     losses_count = 0
-    profit_sum = 0
     total_gain = 0
     total_loss = 0
+
+    acc_percents = 0
+    acc_loss_percents = 0
+    acc_profit_percents = 0
+
     best_absolute = worst_absolute = trades_profit[0]
     best_relative = worst_relative = trades_profit[0]
     # It's more accurate to calculate all we need in a single loop
@@ -127,11 +155,14 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
         if profit.absolute_profit > 0:
             wins_count += 1
             total_gain += profit.absolute_profit
+            acc_profit_percents += profit.relative_profit
+
         elif profit.absolute_profit < 0:
             losses_count += 1 
             total_loss += abs(profit.absolute_profit)
+            acc_loss_percents += abs(profit.relative_profit)
 
-        profit_sum += profit.relative_profit
+        acc_percents += profit.relative_profit
         best_relative = max(profit, best_relative,
                             key=lambda trade: trade.relative_profit)
         best_absolute = max(profit, best_absolute, 
@@ -142,34 +173,33 @@ def get_stats(algorithm: str, trades: t.Sequence[Trade]) -> Stats:
                              key=lambda trade: trade.absolute_profit)
 
     trades_count = len(trades)
-    # Set defaults
-    profit_loss_ratio = Decimal('NaN')
-    win_loss_ratio = Decimal('NaN')
+    sell_trades_count = len(trades_profit)
 
     try:
-        avg_profit = total_gain/wins_count
-        profit_loss_ratio = avg_profit/(total_loss/losses_count)
-        win_loss_ratio = wins_count/losses_count
+        stats.wins_count = wins_count
+        stats.losses_count = losses_count
+        stats.best_deal_absolute = best_absolute
+        stats.best_deal_relative = best_relative
+        stats.worst_deal_absolute = worst_absolute
+        stats.worst_deal_relative = worst_relative
+        average_profit = total_gain/wins_count
+        stats.average_profit = average_profit
+        stats.average_profit_percents = acc_profit_percents / wins_count
+        average_loss = total_loss/losses_count
+        stats.average_loss = -average_loss
+        stats.average_loss_percents = - (acc_loss_percents / losses_count)
+        stats.average_profit_all = (total_gain - total_loss) / sell_trades_count
+        stats.average_profit_all_percents = acc_percents / sell_trades_count
+        stats.profit_loss_ratio = average_profit/average_loss
+        stats.profit_factor = total_gain/total_loss
+        stats.win_loss_ratio = Decimal(wins_count/losses_count)
+        stats.win_rate = Decimal(wins_count/(sell_trades_count/100))
+
     except (ZeroDivisionError, DivisionByZero):
         # Just ignore and use defaults
         pass
 
-    sell_trades_count = len(trades_profit)
-    win_rate = wins_count/(sell_trades_count/100)
-    avg_profit = profit_sum/sell_trades_count
-
-    return Stats(algorithm=algorithm,
-                 avg_profit=avg_profit,
-                 win_rate=win_rate, 
-                 profit_loss_ratio=profit_loss_ratio,
-                 win_loss_ratio=win_loss_ratio,
-                 wins_count=wins_count,
-                 losses_count=losses_count,
-                 best_deal_relative=best_relative,
-                 best_deal_absolute=best_absolute,
-                 worst_deal_relative=worst_relative,
-                 worst_deal_absolute=worst_absolute,
-                 trades_profit=trades_profit)
+    return stats
 
 
 class _PositionItem:    # BUY orders only

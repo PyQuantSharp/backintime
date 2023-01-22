@@ -8,6 +8,11 @@ from backintime.broker_proxy import Trade, OrderInfo
 from .stats import Stats
 
 
+def decimal_to_str(value: Decimal) -> str:
+    """Covert decimal value to str with 4fp precision."""
+    return str(value.quantize(Decimal('0.0001'))) if not value.is_nan() else ''
+
+
 def datetime_to_str(value: datetime) -> str:
     """
     Represent datetime in ISO-8601 format 
@@ -48,12 +53,18 @@ def export_stats(filename: str,
             'Total gain',
             'Total gain (%)',
             'Profit/Loss Algorithm',
-            'Average Profit',
             'Profit/Loss ratio',
+            'Profit Factor',
             'Win/Loss ratio',
             'Win rate',
             'Wins count',
             'Losses count',
+            'Average Profit (all trades)',
+            'Average Profit (all trades), %',
+            'Average Profit (profit-making trades)',
+            'Average Profit (profit-making trades), %',
+            'Average Loss (loss-making trades)',
+            'Average Loss (loss-making trades), %',
             'Best deal (relative)',
             'Best deal (absolute)',
             'Worst deal (relative)',
@@ -76,16 +87,22 @@ def export_stats(filename: str,
                 total_gain_percents,
                 # Stats item
                 item.algorithm,
-                item.avg_profit,
-                item.profit_loss_ratio,
-                item.win_loss_ratio,
-                item.win_rate,
+                decimal_to_str(item.profit_loss_ratio),
+                decimal_to_str(item.profit_factor),
+                decimal_to_str(item.win_loss_ratio),
+                decimal_to_str(item.win_rate),
                 item.wins_count,
                 item.losses_count,
-                item.best_deal_relative.relative_profit,
-                item.best_deal_absolute.absolute_profit,
-                item.worst_deal_relative.relative_profit,
-                item.worst_deal_absolute.absolute_profit
+                decimal_to_str(item.average_profit_all),
+                decimal_to_str(item.average_profit_all_percents),
+                decimal_to_str(item.average_profit),
+                decimal_to_str(item.average_profit_percents),
+                decimal_to_str(item.average_loss),
+                decimal_to_str(item.average_loss_percents),
+                decimal_to_str(item.best_deal_relative.relative_profit),
+                decimal_to_str(item.best_deal_absolute.absolute_profit),
+                decimal_to_str(item.worst_deal_relative.relative_profit),
+                decimal_to_str(item.worst_deal_absolute.absolute_profit)
             ])
 
 
