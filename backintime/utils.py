@@ -1,19 +1,30 @@
-import typing as t
 import logging
+import typing as t
 from enum import Enum
 from itertools import chain
+from decimal import Decimal
 from datetime import datetime, timedelta
 
-from .analyser.analyser import AnalyserBuffer
+from .trading_strategy import TradingStrategy
 from .analyser.indicators.base import IndicatorParam
 from .analyser.indicators.constants import CandleProperties
-from .data.data_provider import DataProviderFactory
-from .trading_strategy import TradingStrategy
+from .analyser.analyser import Analyser, AnalyserBuffer
+from .broker.base import BrokerException
+from .broker.broker import Broker
+from .broker.fees import FeesEstimator
+from .broker_proxy import BrokerProxy
+from .candles import Candles, CandlesBuffer
+from .result.result import BacktestingResult
 from .timeframes import (
     Timeframes, 
     get_timeframes_ratio, 
     estimate_open_time, 
     estimate_close_time
+)
+from .data.data_provider import (
+    DataProvider, 
+    DataProviderFactory,
+    DataProviderError
 )
 
 
@@ -150,3 +161,59 @@ def validate_timeframes(strategy_t: t.Type[TradingStrategy],
     if incompatibles:
         raise IncompatibleTimeframe(base_timeframe, 
                                     incompatibles, strategy_t)
+
+
+UNTIL = PrefetchOptions.PREFETCH_UNTIL
+
+
+def run_backtest(strategy_t: t.Type[TradingStrategy],
+                 data_provider_factory: DataProviderFactory,
+                 start_money: t.Union[int, str],
+                 since: datetime, 
+                 until: datetime,
+                 maker_fee: str,
+                 taker_fee: str,
+                 prefetch_option: PrefetchOptions = UNTIL) -> BacktestingResult:
+    """Run backtesting."""
+    validate_timeframes(strategy_t, data_provider_factory)
+    # Create shared `Broker` for `BrokerProxy`
+    start_money = Decimal(start_money)
+    fees = FeesEstimator(Decimal(maker_fee), Decimal(taker_fee))
+    broker = Broker(start_money, fees)
+    broker_proxy = BrokerProxy(broker)
+    # Create shared buffer for `Analyser`
+    analyser_buffer, since = prefetch_values(strategy_t, 
+                                             data_provider_factory,
+                                             prefetch_option,
+                                             since)
+    analyser = Analyser(analyser_buffer)
+    # Create shared buffer for `Candles`
+    timeframes = strategy_t.candle_timeframes
+    candles_buffer = CandlesBuffer(since, timeframes)
+    candles = Candles(candles_buffer)
+
+    strategy = strategy_t(broker_proxy, analyser, candles)
+    market_data = data_provider_factory.create(since, until)
+    logger = logging.getLogger("backintime")
+    logger.info("Start backtesting...")
+
+    try:
+        for candle in market_data:
+            broker.update(candle)           # Review whether orders can be executed
+            candles_buffer.update(candle)   # Update candles on required timeframes
+            analyser_buffer.update(candle)  # Store data for indicators calculation
+            strategy.tick()                 # Trading strategy logic here
+
+    except (BrokerException, DataProviderError) as e:
+        # These are more or less expected, so don't raise
+        name = e.__class__.__name__
+        logger.error(f"{name}: {str(e)}\nStop backtesting...")
+
+    logger.info("Backtesting is done")
+    return BacktestingResult(strategy_t.get_title(),
+                             market_data,
+                             start_money,
+                             broker.balance.fiat_balance,
+                             broker.current_equity,
+                             broker.get_trades(),
+                             broker.get_orders())

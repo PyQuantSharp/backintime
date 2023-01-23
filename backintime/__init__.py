@@ -6,11 +6,11 @@ The smaller timeframe is used, the more accurate the results will be.
 Short overview of the core concepts is given below.
 
 
-Backtester
+Backtesting
 
-Test trading strategy on historical data.
-`strategy_t` designates which strategy to test, 
-and `data_provider_factory` - which data to use.
+Backtesting is done in `run_backtest` function, which basically 
+initializes required objects, prefetches market data if needed 
+and runs backtesting on historical data.
 
 
 TradingStrategy
@@ -101,14 +101,14 @@ Indicators require a certain amount of data to get a correct result.
 For example, to calculate the SMA (simple moving average) with 
 a period of 9, 9 values are required. 
 So, the strategy will get the wrong result of the SMA indicator, 
-until 9 candles are accumulated.
+until all 9 candles are accumulated.
 
 In order for the strategy to get the correct values 
 right from the start, prefetching of market data is used.
- 
+
 You can configure this behavior by choosing from the following 
 options and passing it as `prefetch_option` argument to 
-`Backtester.run` method:
+`run_backtest` function:
 
     - PREFETCH_UNTIL (default): 
         Prefetch the required amount of data until `since`* date; 
@@ -131,11 +131,11 @@ options and passing it as `prefetch_option` argument to
     - PREFETCH_NONE - Do not prefetch data.  
 
 *`since` date is the value of the argument `since` passed to 
-the `Backtester.run` method. 
+the `run_backtest` function. 
 """
 import logging
-from .backtester import Backtester
 from .trading_strategy import TradingStrategy
+from .utils import run_backtest
 
 
 logging.basicConfig(level='INFO')

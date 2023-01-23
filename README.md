@@ -32,7 +32,9 @@ The smaller timeframe is used, the more accurate the results will be.
 
 ## Core concepts
 
-Backtesting is done in `Backtester.run` method, which basically initializes required objects, 
+#### Backtesting
+
+Backtesting is done in `run_backtest` function, which basically initializes required objects, 
 prefetches market data if needed and runs the similar loop:
 
 ```py
@@ -42,13 +44,6 @@ for candle in candles:
     candles.update(candle)  # Update candles on required timeframes
     strategy.tick()         # Trading strategy logic here
 ```
-Short overview of the core concepts is given below.
-
-
-#### Backtester
-
-Test trading strategy on historical data.
-`strategy_t` designates which strategy to test, and `data_provider_factory` - which data to use.
 
 
 #### TradingStrategy
@@ -70,9 +65,11 @@ Order execution policy of builtin broker:
 
 - **Limit orders**: 
     Each of the conditions from the following list will in turn be applied to the `order_price` of each order:
+		```
         1) price == candle.OPEN
         2) price >= candle.LOW and price <= candle.HIGH
         3) price == candle.CLOSE
+		```
     The order will be executed if the condition is true. 
     The price of execution is the order's `order_price`.
 
@@ -104,21 +101,23 @@ Yields OHLCV candle during iteration.
 Provides export to CSV and stats such as Win Rate, Profit/Loss, Average Profit, Best/Worst deal, etc.
 Supports estimation in FIFO (First-In-First-Out), LIFO (Last-In-First-Out) or AVCO (Average Cost) algorithms.
 The algorithm name specifies the order in which BUYs must be considered to estimate profit or loss.
+  
 All these algorithms produce the same result if SELL order always follows only one BUY.
 
 
 #### Prefetching
 
 Indicators require a certain amount of data to get a correct result. For example, to calculate the SMA (simple moving average) with a period of 9, 9 values are required. 
-So, the strategy will get the wrong result of the SMA indicator, until 9 candles are accumulated.
-In order for the strategy to get the correct values right from the start, prefetching of market data is used. You can configure this behavior by choosing from the following options and passing it as `prefetch_option` argument to the `Backtester.run` method:
+So, the strategy will get the wrong result of the SMA indicator, until all 9 candles are accumulated.  
+
+In order for the strategy to get the correct values right from the start, prefetching of market data is used. You can configure this behavior by choosing from the following options and passing it as `prefetch_option` argument to the `run_backtest` function:
 - **PREFETCH_UNTIL** (default) - prefetch the required amount of data until `since` date; the amount of data required is calculated automatically. In this case, the strategy backtesting will be started from the `since` date. This option is convenient when market data is requested from the exchange API, because situations when the exchange does not have enough historical data are quite rare. 
 
 - **PREFETCH_SINCE** - prefetch the required amount of data from `since` date; the amount of data required for this is calculated automatically. In this case, the strategy backtesting will be launched starting from the dynamically calculated date. This option may be useful when working with a CSV file when you are not sure if it contains enough data before the `since` date. 
 
 - **PREFETCH_NONE** - Do not prefetch data.  
 
-Where `since` date is the value of the argument `since` passed to the `Backtester.run` method. 
+Where `since` date is the value of the argument `since` passed to the `run_backtest` function. 
 
 
 ## Docs
