@@ -36,12 +36,6 @@ class DateNotFound(DataProviderError):
         super().__init__(message)
 
 
-class InconsistentData(DataProviderError):
-    def __init__(self, open_time: datetime, prev_open_time: datetime):
-        message = f"Candle {open_time} follows {prev_open_time}"
-        super().__init__(message)
-
-
 def _parse_volume(candle, schema: CSVCandlesSchema) -> Decimal:
     return Decimal(candle[schema.volume]) if schema.volume \
         else Decimal('NaN')
