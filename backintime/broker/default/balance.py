@@ -1,7 +1,7 @@
 import typing as t
 from decimal import Decimal, ROUND_HALF_UP   # https://docs.python.org/3/library/decimal.html
-from .base import AbstractBalance
-from .base import InsufficientFunds as BaseInsufficientFunds
+from backintime.broker.base import AbstractBalance
+from backintime.broker.base import InsufficientFunds as BaseInsufficientFunds
 
 
 class InsufficientFunds(BaseInsufficientFunds):
@@ -14,9 +14,9 @@ class Balance(AbstractBalance):
     """Default balance implementation for default broker."""
     def __init__(self, 
                  fiat_balance: Decimal, 
-                 crypto_balance: t.Optional[Decimal] = Decimal(0),
-                 min_fiat: t.Optional[Decimal]=Decimal('0.01'),
-                 min_crypto: t.Optional[Decimal]=Decimal('0.00000001')):
+                 crypto_balance: Decimal = Decimal(0),
+                 min_fiat: Decimal = Decimal('0.01'),
+                 min_crypto: Decimal = Decimal('0.00000001')):
         self._fiat_balance = fiat_balance
         self._available_fiat_balance = fiat_balance
         self._crypto_balance = crypto_balance

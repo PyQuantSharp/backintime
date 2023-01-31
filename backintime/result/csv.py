@@ -4,7 +4,7 @@ import typing as t
 from decimal import Decimal
 from datetime import datetime
 from backintime.timeframes import Timeframes
-from backintime.broker_proxy import Trade, OrderInfo
+from backintime.broker.base import TradeInfo, OrderInfo
 from .stats import Stats
 
 
@@ -150,7 +150,7 @@ def export_orders(filename: str,
 
 def export_trades(filename: str,
                   delimiter: str,
-                  trades: t.Sequence[Trade]) -> None:
+                  trades: t.Sequence[TradeInfo]) -> None:
     """
     Export trades to CSV file.
     Won't take effect if `trades` is empty.

@@ -3,7 +3,7 @@ import typing as t
 from datetime import datetime, timezone
 from decimal import Decimal
 from backintime.data.data_provider import DataProvider
-from backintime.broker_proxy import Trade, OrderInfo
+from backintime.broker.base import TradeInfo, OrderInfo
 from .stats import Stats, TradeProfit, get_stats
 from .csv import export_stats, export_orders, export_trades
 
@@ -152,7 +152,7 @@ class BacktestingResult:
                  start_balance: Decimal,
                  result_balance: Decimal,
                  result_equity: Decimal,
-                 trades: t.Sequence[Trade],
+                 trades: t.Sequence[TradeInfo],
                  orders: t.Sequence[OrderInfo]):
         self._data_provider = data_provider
         self._data_title = data_provider.title

@@ -2,8 +2,8 @@ import typing as t
 from dataclasses import dataclass
 from collections import deque
 from decimal import Decimal, DivisionByZero
-from backintime.broker_proxy import Trade
-from backintime.broker.orders import OrderSide
+from backintime.broker.base import OrderSide
+from backintime.broker.base import TradeInfo as Trade
 
 
 @dataclass
@@ -80,9 +80,9 @@ class Stats:
                 f"Win/Loss:\t{self.win_loss_ratio:.2f}\n"
                 f"Wins count:\t{self.wins_count}\n"
                 f"Losses count:\t{self.losses_count}\n\n"
-                f"Avg. Profit (all trades): {self.average_profit_all:.2f}\n"
+                f"Avg. Profit (all trades): {self.average_profit_all:+.2f}\n"
                 f"Avg. Profit (all trades), %: {avg_profit_all_percents}\n"
-                f"Avg. Profit (profit-making trades): {self.average_profit:.2f}\n"
+                f"Avg. Profit (profit-making trades): {self.average_profit:+.2f}\n"
                 f"Avg. Profit (profit-making trades), %: {avg_profit_percents}\n"
                 f"Avg. Loss (loss-making trades): {self.average_loss:.2f}\n"
                 f"Avg. Loss (loss-making trades), %: {avg_loss_percents}\n\n"
@@ -245,6 +245,7 @@ def _estimate_trade_profit(trade: Trade, position: Decimal) -> TradeProfit:
     trade_gain = _get_gain(trade)
     absolute_profit = trade_gain - position
     relative_profit = trade_gain/(position/100) - 100
+
     return TradeProfit(absolute_profit=absolute_profit,
                        relative_profit=relative_profit,
                        trade_id=trade.trade_id, 

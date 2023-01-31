@@ -34,21 +34,32 @@ Order execution policy of builtin broker:
         The price of execution is the candle's OPEN price.
 
     - Limit orders: 
-        Each of the conditions from the following list 
-        will in turn be applied to the `order_price` of each order:
-        1) price == candle.OPEN
-        2) price >= candle.LOW and price <= candle.HIGH
-        3) price == candle.CLOSE
-        The order will be executed if the condition is true. 
-        The price of execution is the order's `order_price`.
+        Limit order will be executed at the limit price or better:
+        lower or equal price for BUY orders and higher or equal price 
+        for SELL orders.
+        First, the `order_price` of each order will be compared to
+        the OPEN price of a new candle: 
+            BUY orders will be executed if `order_price` >= OPEN. 
+            SELL orders will be executed if `order_price` <= OPEN.
+
+        Then, remaining BUYs will be compared to LOW,
+        and remaining SELLs - to HIGH.
+        Fill price is the first price that matched limit price.
 
     - Take Profit/Stop Loss orders: 
-        The activation conditions are essentially the same 
-        as for limit orders, but the conditions from the list
-        are applied to order's `trigger_price`. 
-        When a TP/SL order is triggered, it will be treated 
-        as a market or limit order, depending on
-        whether `order_price` is set for the order. 
+        TP/SL orders will be activated if the `trigger_price` is
+        within the price bounds of a candle.
+
+        This check is performed in two steps:
+            1) For each order: activate if trigger_price == OPEN
+            2) For each order: activate if LOW <= trigger_price <= HIGH 
+
+        When a TP/SL order is triggered, it will be treated
+        as a market or limit order, depending on whether 
+        `order_price` is set for the order.
+
+    Limit, Take Profit and Stop Loss orders are reviewed 
+    in the order of their submission (oldest first).
 
 
 Analyser

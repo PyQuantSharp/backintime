@@ -4,12 +4,8 @@ from datetime import datetime
 from itertools import zip_longest
 from pytest import fixture
 from backintime.timeframes import Timeframes as tf
-from backintime.broker.broker import Trade, OrderInfo
-from backintime.broker.orders import (
-    Order,
-    OrderSide,
-    OrderType,
-)
+from backintime.broker.base import OrderSide, OrderType
+from backintime.broker.default.orders import Order, OrderInfo, TradeInfo
 from backintime.result.stats import (
     Stats,
     TradeProfit,
@@ -22,7 +18,7 @@ from backintime.result.stats import (
 
 
 @fixture
-def sample_trades() -> t.List[Trade]:
+def sample_trades() -> t.List[TradeInfo]:
     orders = [
         Order(side=OrderSide.BUY,
               order_type=OrderType.LIMIT,
@@ -61,13 +57,12 @@ def sample_trades() -> t.List[Trade]:
         order.fill_price = order.order_price
         order.trading_fee = Decimal(0)
 
-    trades = [
-        Trade(trade_id=order_id,
-              result_balance=None,
-              order_info=OrderInfo(order_id, order))
-                    for order_id, order in enumerate(orders)
+    return [
+        TradeInfo(trade_id=order_id,
+                  result_balance=None,
+                  order_info=OrderInfo(order_id, order))
+                        for order_id, order in enumerate(orders)
     ]
-    return trades
 
 
 def test_fifo_profit_loss(sample_trades):

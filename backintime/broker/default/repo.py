@@ -1,22 +1,22 @@
 import typing as t
 from itertools import count
 from collections import abc
-from .base import StrategyOrders
 from .orders import (
     Order, 
     StrategyOrder,
     MarketOrder, 
     LimitOrder, 
     StopLossOrder,
-    TakeProfitOrder
+    TakeProfitOrder,
+    StrategyOrders
 )
 
 
 class OrdersRepository(abc.Iterable):
     def __init__(self):
-        self._market_orders: t.Set[int] = set()  # Market/Strategy ids
-        self._limit_orders: t.Set[int] = set()    # Limit/Strategy ids
-        self._strategy_orders: t.Set[int] = set()  # Strategy ids
+        self._market_orders: t.List[int] = []  # Market/Strategy ids
+        self._limit_orders: t.List[int] = []    # Limit/Strategy ids
+        self._strategy_orders: t.List[int] = []  # Strategy ids
         self._orders_counter = count()
         self._orders_map: t.Dict[int, Order] = {}
         self._linked_strategy_orders: t.Dict[int, StrategyOrders] = {}
@@ -41,13 +41,13 @@ class OrdersRepository(abc.Iterable):
 
     def add_market_order(self, order: MarketOrder) -> int:
         order_id = next(self._orders_counter)
-        self._market_orders.add(order_id)
+        self._market_orders.append(order_id)
         self._orders_map[order_id] = order
         return order_id 
 
     def add_limit_order(self, order: LimitOrder) -> int:
         order_id = next(self._orders_counter)
-        self._limit_orders.add(order_id)
+        self._limit_orders.append(order_id)
         self._orders_map[order_id] = order
         # Create shared obj for linked TP/SL orders 
         strategy_orders = StrategyOrders()
@@ -83,13 +83,13 @@ class OrdersRepository(abc.Iterable):
         return order_id
 
     def add_order_to_market_orders(self, order_id: int) -> None:
-        self._market_orders.add(order_id)
+        self._market_orders.append(order_id)
 
     def add_order_to_limit_orders(self, order_id: int) -> None:
-        self._limit_orders.add(order_id)
+        self._limit_orders.append(order_id)
 
     def remove_market_orders(self) -> None:
-        self._market_orders = set()
+        self._market_orders = []
 
     def remove_market_order(self, order_id: int) -> None:
         self._market_orders.remove(order_id)
@@ -113,8 +113,8 @@ class OrdersRepository(abc.Iterable):
 
     def _add_strategy_order(self, order: StrategyOrder) -> int:
         order_id = next(self._orders_counter)
-        self._limit_orders.add(order_id)
-        self._strategy_orders.add(order_id)
+        self._limit_orders.append(order_id)
+        self._strategy_orders.append(order_id)
         self._orders_map[order_id] = order
         return order_id
 

@@ -10,9 +10,9 @@ from .analyser.indicators.base import IndicatorParam
 from .analyser.indicators.constants import CandleProperties
 from .analyser.analyser import Analyser, AnalyserBuffer
 from .broker.base import BrokerException
-from .broker.broker import Broker
-from .broker.fees import FeesEstimator
-from .broker_proxy import BrokerProxy
+from .broker.default.fees import FeesEstimator
+from .broker.default.proxy import BrokerProxy
+from .broker.default.broker import Broker
 from .candles import Candles, CandlesBuffer
 from .result.result import BacktestingResult
 from .timeframes import (
