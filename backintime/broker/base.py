@@ -1,19 +1,4 @@
-"""
-Orders only hold required data, but the desired functions 
-must be implemented somewhere else. 
-All fields are public. It is up to a broker implementation to set 
-`status` and provide TP/SL orders features:
-
-    - Multiple TP/SL orders can be posted for the same position, 
-      so the summarised value of opened TP/SL orders can be greater
-      than the opened position. 
-      In this case, only the first TP/SL order whose conditions
-      are satisfied will be executed. Others must be cancelled.
-
-    - When TP/SL order is activated (target_price meets market), 
-      it must be treated as Market/Limit order,
-      depending on whether `order_price` was provided.
-"""
+"""Interfaces for broker."""
 import typing as t
 from abc import ABC, abstractmethod
 from enum import Enum
