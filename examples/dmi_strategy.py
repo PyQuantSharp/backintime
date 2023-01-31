@@ -29,14 +29,14 @@ class DMIStrategy(TradingStrategy):
 
     def tick(self):
         dmi = self.analyser.dmi(tf.H4)
-        if not self.position and dmi_buy_signal(dmi)
+        if self.broker.max_fiat_for_taker and dmi_buy_signal(dmi):
             self.buy()
 
-        elif self.position and dmi_sell_signal(dmi)
+        elif self.position and dmi_sell_signal(dmi):
             self.sell()
 
 
-feed = BinanceCandlesFactory('BTCUSDT', tf.M1)
+feed = BinanceCandlesFactory('BTCUSDT', tf.M15)
 since = datetime.fromisoformat("2020-01-01 00:00+00:00")
 until = datetime.fromisoformat("2021-01-01 00:00+00:00")
 

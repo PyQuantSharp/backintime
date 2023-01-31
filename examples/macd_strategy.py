@@ -18,7 +18,7 @@ class MacdStrategy(TradingStrategy):
             self.sell()
 
 
-feed = BinanceCandlesFactory('BTCUSDT', tf.M1)
+feed = BinanceCandlesFactory('BTCUSDT', tf.M15)
 since = datetime.fromisoformat("2020-01-01 00:00+00:00")
 until = datetime.fromisoformat("2021-01-01 00:00+00:00")
 
