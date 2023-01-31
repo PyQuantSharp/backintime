@@ -68,10 +68,10 @@ Order execution policy of builtin broker:
     for SELL orders.
     First, the `order_price` of each order will be compared to
     the OPEN price of a new candle:
-     ```
-     	BUY orders will be executed if `order_price` >= OPEN. 
-     	SELL orders will be executed if `order_price` <= OPEN.
-   	 ```
+    ```
+    BUY orders will be executed if `order_price` >= OPEN. 
+    SELL orders will be executed if `order_price` <= OPEN.
+   	```
     Then, remaining BUYs will be compared to LOW,
     and remaining SELLs - to HIGH.
     Fill price is the first price that matched limit price.
@@ -81,8 +81,8 @@ Order execution policy of builtin broker:
     within the price bounds of a candle.
     This check is performed in two steps:
     ```    
-   		1) For each order: activate if trigger_price == OPEN
-    	2) For each order: activate if LOW <= trigger_price <= HIGH
+	1) For each order: activate if trigger_price == OPEN
+    2) For each order: activate if LOW <= trigger_price <= HIGH
     ``` 
     When a TP/SL order is triggered, it will be treated
     as a market or limit order, depending on whether
