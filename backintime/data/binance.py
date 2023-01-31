@@ -1,4 +1,4 @@
-from __future__ import annotations
+import time
 import typing as t
 import requests as r
 from datetime import datetime, timezone
@@ -101,6 +101,8 @@ class BinanceCandles(DataProvider):
         max_per_request = 1000
         tf_ms = self._timeframe.value * 1000
         max_time_step = max_per_request * tf_ms
+        # requests counter
+        counter = 0
 
         params = {
             "symbol": self._symbol,
@@ -123,9 +125,14 @@ class BinanceCandles(DataProvider):
                 raise DataProviderError("Failed to connect")
             except r.exceptions.HTTPError as e:
                 raise DataProviderError(str(e))
+            else:
+                counter += 1
 
             for item in res.json():
                 yield _parse_candle(item)
+            # sleep after every 20th call
+            if counter % 20 == 0:
+                time.sleep(1)
 
 
 class BinanceCandlesFactory(DataProviderFactory):
