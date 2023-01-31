@@ -134,8 +134,7 @@ class CSVCandles(DataProvider):
         csvrows = _skip_to_date(csvrows, self._schema.open_time, 
                                 self._since, self._date_parser)
         csvrows = iter(csvrows)
-        prev_open: t.Optional[datetime] = None
-        # Check whether date present
+        # Check whether date is presented
         try:
             row = next(csvrows)
         except StopIteration:
@@ -149,12 +148,6 @@ class CSVCandles(DataProvider):
             candle = _parse_candle(row, self._schema, self._date_parser)
             if candle.open_time >= self._until:
                 break
-            # Check data consistency
-            delta = candle.open_time - prev_open
-            delta = delta.total_seconds()
-            if delta < self._timeframe.value:
-                raise InconsistentData(candle.open_time, prev_open)
-            prev_open = candle.open_time
             yield candle
 
 
