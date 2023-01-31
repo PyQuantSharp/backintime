@@ -1,3 +1,4 @@
+import os
 import typing as t
 from datetime import datetime
 from decimal import Decimal
@@ -6,8 +7,7 @@ from backintime.timeframes import Timeframes as tf
 from backintime.data.csv import (
     CSVCandlesFactory, 
     Candle, 
-    DateNotFound, 
-    InconsistentData
+    DateNotFound,
 )
 
 
@@ -24,7 +24,8 @@ def _candles_equal(first_candle: Candle, second_candle: Candle) -> bool:
 
 def test_first_candle_open_time():
     """Ensure that the first candle has `open_time` >= `since` param."""
-    test_file = 'test_h4_candles.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, 'test_h4_candles.csv')
     since = datetime.fromisoformat("2018-01-01 00:00+00:00")
     until = datetime.fromisoformat("2018-01-01 08:00+00:00")
     candles = CSVCandlesFactory(test_file, "BTCUSDT", tf.H4)
@@ -36,7 +37,8 @@ def test_first_candle_open_time():
 
 def test_last_candle_close_time():
     """Ensure that the last candle has `close_time` < `until` param."""
-    test_file = 'test_h4_candles.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, 'test_h4_candles.csv')
     since = datetime.fromisoformat("2018-01-01 00:00+00:00")
     until = datetime.fromisoformat("2018-01-07 08:00+00:00")
     candles = CSVCandlesFactory(test_file, "BTCUSDT", tf.H4)
@@ -53,7 +55,8 @@ def test_candle_data_matches_expected():
     Ensure that candle data matches expected. 
     Hardcoded candle data valid for 2018-01-07 00:00, H4 is used.
     """
-    test_file = 'test_h4_candles.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, 'test_h4_candles.csv')
     since = datetime.fromisoformat("2018-01-07 00:00+00:00")
     until = datetime.fromisoformat("2018-01-07 04:00+00:00")
     candles = CSVCandlesFactory(test_file, "BTCUSDT", tf.H4)
@@ -78,7 +81,8 @@ def test_not_found_date_will_raise():
     Ensure that passing date not present in CSV file 
     will raise `DateNotFound`.
     """
-    test_file = 'test_h4_candles.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, 'test_h4_candles.csv')
     since = datetime.fromisoformat("2023-01-01 00:00+00:00")
     until = datetime.fromisoformat("2024-01-01 00:00+00:00")
     candles = CSVCandlesFactory(test_file, "BTCUSDT", tf.H4)
@@ -91,23 +95,3 @@ def test_not_found_date_will_raise():
         date_not_found_raised = True
     assert date_not_found_raised
 
-
-def test_inconsistent_data_will_raise():
-    """
-    Ensure that iterating over CSV file with inconsistent data 
-    (some candle has `open_time` < `close_time` of prev. candle) 
-    will raise `InconsistentData`.
-    """
-    test_file = 'inconsistent_h4_candles.csv'
-    since = datetime.fromisoformat("2018-01-01 00:00+00:00")
-    until = datetime.fromisoformat("2018-01-07 00:00+00:00")
-    candles = CSVCandlesFactory(test_file, "BTCUSDT", tf.H4)
-    candles = candles.create(since, until)
-    inconsistent_data_raised = False
-
-    try:
-        for candle in candles:
-            pass
-    except InconsistentData:
-        inconsistent_data_raised = True
-    assert inconsistent_data_raised

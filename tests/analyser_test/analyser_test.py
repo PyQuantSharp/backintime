@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from backintime.data.csv import CSVCandlesFactory
@@ -26,7 +27,8 @@ def test_macd():
     params = macd_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -69,7 +71,8 @@ def test_macd_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -96,7 +99,8 @@ def test_sma():
     params = sma_params(tf.H4, CLOSE, 9)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -128,7 +132,8 @@ def test_sma_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -155,7 +160,8 @@ def test_ema_9():
     params = ema_params(tf.H4, CLOSE, 9)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -187,7 +193,8 @@ def test_ema_9_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -214,7 +221,8 @@ def test_ema_100():
     params = ema_params(tf.H4, CLOSE, 100)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -247,7 +255,8 @@ def test_atr():
     params = atr_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -281,7 +290,8 @@ def test_atr_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -310,7 +320,8 @@ def test_rsi():
     params = rsi_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -342,7 +353,8 @@ def test_rsi_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -369,7 +381,8 @@ def test_bbands():
     params = bbands_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -415,7 +428,8 @@ def test_bbands_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -442,7 +456,8 @@ def test_dmi():
     params = dmi_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -490,7 +505,8 @@ def test_dmi_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -519,7 +535,8 @@ def test_adx():
     params = adx_params(tf.H4)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -553,7 +570,8 @@ def test_adx_len():
     quantity = params[0].quantity
     expected_len = quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.H4, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -582,7 +600,8 @@ def test_classic_pivot():
     params = pivot_params(tf.D1)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -656,7 +675,8 @@ def test_classic_pivot_len():
     quantity = params[0].quantity
     expected_len = quantity - 1
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -685,7 +705,8 @@ def test_traditional_pivot():
     params = pivot_params(tf.D1)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -769,7 +790,8 @@ def test_traditional_pivot_len():
     quantity = params[0].quantity
     expected_len = quantity - 1
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -798,7 +820,8 @@ def test_fibonacci_pivot():
     params = pivot_params(tf.D1)
     quantity = params[0].quantity
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
@@ -862,7 +885,8 @@ def test_fibonacci_pivot_len():
     quantity = params[0].quantity
     expected_len = quantity - 1
 
-    test_file = 'test_h4.csv'
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
     until = datetime.fromisoformat('2022-12-01 00:00+00:00')
     since = estimate_open_time(until, tf.D1, -quantity)
     candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)

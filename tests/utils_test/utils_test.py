@@ -1,3 +1,4 @@
+import os
 import typing as t
 from pytest import fixture
 from datetime import datetime
@@ -7,8 +8,8 @@ from backintime.timeframes import Timeframes as tf
 from backintime.data.csv import CSVCandlesFactory
 from backintime.analyser.analyser import Analyser
 from backintime.analyser.indicators.sma import sma_params as sma
-from backintime.backtester import Backtester
 from backintime.utils import (
+    run_backtest,
     prefetch_values, 
     PREFETCH_SINCE, 
     PREFETCH_UNTIL,
@@ -34,7 +35,9 @@ def test_prefetch_until(stumb_strategy):
     `AnalyserBuffer` with valid values, 
     using MA calculation as a criterion. 
     """
-    candles = CSVCandlesFactory("test_h4.csv", 'BTCUSDT', tf.H4)
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
     until = datetime.fromisoformat("2021-12-01 00:00+00:00")
     expected_start_date = until
     expected_sma = Decimal('57311.97')
@@ -58,7 +61,9 @@ def test_prefetch_since(stumb_strategy):
     `AnalyserBuffer` with valid values, 
     using MA calculation as a criterion. 
     """
-    candles = CSVCandlesFactory("test_h4.csv", 'BTCUSDT', tf.H4)
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.H4)
     since = datetime.fromisoformat("2021-11-29 12:00+00:00")
     expected_start_date = datetime.fromisoformat("2021-12-01 00:00+00:00")
     expected_sma = Decimal('57311.97')
@@ -78,14 +83,22 @@ def test_prefetch_since(stumb_strategy):
 
 def test_incompatible_timeframe(stumb_strategy):
     """
-    Ensure that passing incompatible timeframe into backtester ctor 
+    Ensure that passing incompatible timeframe into `run_backtest` 
     will raise `IncompatibleTimeframe`.
     """
-    candles = CSVCandlesFactory("test_h4.csv", 'BTCUSDT', tf.D1)
+    dirname = os.path.dirname(__file__)
+    test_file = os.path.join(dirname, "test_h4.csv")
+    candles = CSVCandlesFactory(test_file, 'BTCUSDT', tf.D1)
     incompatible_timeframe_raised = False
 
     try:
-        Backtester(stumb_strategy, candles)
+        run_backtest(strategy_t=stumb_strategy, 
+                     data_provider_factory=candles, 
+                     start_money=10_000, 
+                     since=datetime.now(),
+                     until=datetime.now(),
+                     maker_fee=Decimal('0.000'), 
+                     taker_fee=Decimal('0.000'))
     except IncompatibleTimeframe:
         incompatible_timeframe_raised = True
     assert incompatible_timeframe_raised
