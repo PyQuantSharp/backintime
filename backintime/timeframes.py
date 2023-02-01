@@ -1,4 +1,6 @@
+import typing as t
 from enum import Enum
+from datetime import datetime, timedelta
 
 
 class Timeframes(Enum):
@@ -23,3 +25,46 @@ class Timeframes(Enum):
     D1 = 86400
     # week
     W1 = 604800
+
+    def __str__(self) -> str:
+        return self.name
+
+
+def get_timeframes_ratio(first_timeframe: Timeframes, 
+                         second_timeframe: Timeframes) -> t.Tuple[int, int]:
+    """Get quotient and remainder of a division of two timeframes."""
+    return divmod(first_timeframe.value, second_timeframe.value)
+
+
+def get_seconds_duration(timeframe: Timeframes) -> int:
+    """Get timeframe duration in seconds."""
+    return timeframe.value - 1
+
+
+def get_millis_duration(timeframe: Timeframes) -> int:
+    """Get timeframe duration in milliseconds."""
+    return get_seconds_duration(timeframe) * 1000 + 999
+
+
+def estimate_open_time(time: datetime, 
+                       timeframe: Timeframes, 
+                       offset: int = 0) -> datetime:
+    """
+    Get open time of a candle on `timeframe` from `time` 
+    and add `offset` closed candles.
+    """
+    seconds_after_open = time.timestamp() % timeframe.value
+    delta = timedelta(seconds=seconds_after_open - offset * timeframe.value, 
+                      milliseconds=time.microsecond/1000)
+    return time - delta
+
+
+def estimate_close_time(time: datetime, 
+                        timeframe: Timeframes, 
+                        offset: int = 0) -> datetime:
+    """
+    Get close time of a candle on `timeframe` from `time`
+    and add `offset` closed candles.
+    """
+    open_time = estimate_open_time(time, timeframe, offset)
+    return open_time + timedelta(milliseconds=get_millis_duration(timeframe))

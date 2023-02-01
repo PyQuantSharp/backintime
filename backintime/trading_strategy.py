@@ -1,93 +1,111 @@
-from abc import ABC, abstractmethod
-from typing import Iterable, Callable
+import typing as t
 
-from .oscillators import Oscillator
+from abc import ABC, abstractmethod
+from decimal import Decimal
+from .candles import Candles
 from .timeframes import Timeframes
-from .broker import Broker
-from .timeframes_candle import TimeframesCandle
-from .market_data_analyzer import MarketDataAnalyzer
-from .candles_providers import CandlesProvider
-from .broker.orders import MarketBuy, MarketSell, LimitBuy, LimitSell
+from .analyser.analyser import Analyser
+from .analyser.indicators.base import IndicatorParam
+from .broker.base import (
+    OrderSide,
+    MarketOrderOptions,
+    MarketOrderInfo,
+    LimitOrderOptions,
+    LimitOrderInfo,
+    TakeProfitOptions,
+    StopLossOptions,
+    AbstractBroker
+)
 
 
 class TradingStrategy(ABC):
     """
-    Base class for strategies
+    Base class for trading strategies. 
+    Strategy must provide algorithm implementation in `tick` method, 
+    which runs each time a new candle closes.
 
-    Override "using_candles" to define what timeframes will be used
-        in strategy and make them available in __call__ method
-        via self.candles.get(timeframe)
+    In runtime, strategy has access to `broker`, `analyser` and `candles`.
+        - `broker` - Manages orders in a simulated
+            market environment. The broker executes/activates orders
+            whose conditions fits the market.
+        - `analyser` - Performs indicators calculation.
+        - `candles` - Provides the last candle representation 
+            for various timeframes. It is useful for checking 
+            properties of a candle on one timeframe (H1, for example),
+            while having data on another (for instance, M1).
 
-    Override "using_oscillators" to define what oscillators will be
-        used in strategy and make then available in __call__ method
-        via self.oscillators.get(oscillator_name)
+    `TradingStrategy` also has several class attributes:
+        - `title` - title of a strategy
+        - `indicators` - Set of indicators params used in a strategy. 
+            This is useful to infer how many market data is needed to store 
+            to be able to calculate indicators at any time.
+        - `candle_timeframes` - Set of timeframes whose candles may be
+            requested during strategy run.
 
-    Override analyzer_t to provide custom analyzer class
+    There is no need to access or modify these class attributes
+    from inside the strategy, normally.
     """
-    using_candles: Iterable[Timeframes] = None
-    using_oscillators: Iterable[Callable[..., Oscillator]] = None
-    analyzer_t = MarketDataAnalyzer
+    title = ''
+    indicators: t.Set[t.Tuple[IndicatorParam]] = set()
+    candle_timeframes: t.Set[Timeframes] = set()
 
-    def __init__(self, market_data: CandlesProvider, broker: Broker):
-        self._market_data = market_data
-        self._broker = broker
+    def __init__(self, 
+                 broker: AbstractBroker,
+                 analyser: Analyser,
+                 candles: Candles):
+        self.broker=broker
+        self.analyser=analyser
+        self.candles=candles
 
-        if self.using_oscillators:
-            self._oscillators = self.analyzer_t(
-                market_data, self.using_oscillators)
-        else:
-            self._oscillators = None
-
-        if self.using_candles:
-            self._candles = TimeframesCandle(
-                market_data, self.using_candles)
-        else:
-            self._candles = None
-
-    def next(self) -> None:
-        """
-        Runs each time a new candle closes
-        and forwards the call to linked instances
-        to keep all data up to date
-        """
-        self._market_data.next()
-
-        if self._broker.has_orders():
-            self._broker.update()
-        if self._candles:
-            self._candles.update()
-        if self._oscillators:
-            self._oscillators.update()
-
-        self.__call__()
-
-    def _buy(self, price: float=None, quantity: float=None) -> None:
-        order = MarketBuy(quantity) if not price \
-            else LimitBuy(price, quantity)
-        self._broker.submit(order)
-
-    def _sell(self, price: float=None, quantity: float=None) -> None:
-        order = MarketSell(quantity) if not price \
-            else LimitSell(price, quantity)
-        self._broker.submit(order)
+    @classmethod
+    def get_title(cls) -> str:
+        return cls.title or cls.__name__
 
     @property
-    def oscillators(self) -> MarketDataAnalyzer:
-        return self._oscillators
+    def position(self) -> Decimal:
+        return self.broker.balance.available_crypto_balance
 
-    @property
-    def candles(self) -> TimeframesCandle:
-        return self._candles
+    def buy(self, amount: t.Optional[Decimal] = None) -> MarketOrderInfo:
+        """Shortcut for submitting market buy order."""
+        order_amount = amount or self.broker.max_fiat_for_taker
+        options = MarketOrderOptions(OrderSide.BUY, amount=order_amount)
+        return self.broker.submit_market_order(options)
 
-    @property
-    def position(self):
-        pos = self._broker.position()
-        if not pos.opened():
-            return None
-        else:
-            return pos
+    def sell(self, amount: t.Optional[Decimal] = None) -> MarketOrderInfo:
+        """Shortcut for submitting market sell order."""
+        order_amount = amount or self.position
+        options = MarketOrderOptions(OrderSide.SELL, amount=order_amount)
+        return self.broker.submit_market_order(options)
+
+    def limit_buy(self,
+                  order_price: Decimal,
+                  take_profit: t.Optional[TakeProfitOptions] = None,
+                  stop_loss: t.Optional[StopLossOptions] = None,
+                  amount: t.Optional[Decimal] = None) -> LimitOrderInfo:
+        """Shortcut for submitting limit buy order."""
+        order_amount = amount or self.broker.max_fiat_for_maker
+        options = LimitOrderOptions(OrderSide.BUY,
+                                    amount=order_amount,
+                                    order_price=order_price,
+                                    take_profit=take_profit,
+                                    stop_loss=stop_loss)
+        return self.broker.submit_limit_order(options)
+
+    def limit_sell(self, 
+                   order_price: Decimal,
+                   take_profit: t.Optional[TakeProfitOptions] = None,
+                   stop_loss: t.Optional[StopLossOptions] = None,
+                   amount: t.Optional[Decimal] = None) -> LimitOrderInfo:
+        """Shortcut for submitting limit sell order."""
+        order_amount = amount or self.position
+        options = LimitOrderOptions(OrderSide.SELL,
+                                    amount=order_amount,
+                                    order_price=order_price,
+                                    take_profit=take_profit,
+                                    stop_loss=stop_loss)
+        return self.broker.submit_limit_order(order)
 
     @abstractmethod
-    def __call__(self) -> None:
-        """ The lands of user code """
+    def tick(self) -> None:
+        """The lands of user code. Runs each time a new candle closes."""
         pass

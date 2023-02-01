@@ -7,22 +7,19 @@ with open('README.md', 'r', encoding="utf-8") as readmefile:
 
 setup(
     name = 'backintime',
-    version = '1.6.2',
-    description = 'Trading strategies backtesting',
+    version = '1.6.3',
+    description = 'Tool for testing trading strategies on historical data',
     author='Akim Mukhtarov',
     author_email = 'akim.int80h@gmail.com',
     url = 'https://github.com/akim-mukhtarov/backintime',
     packages = [
         'backintime',
-        'backintime/backtester',
+        'backintime/analyser',
+        'backintime/analyser/indicators',
         'backintime/broker',
-        'backintime/candles_providers',
-        'backintime/candles_providers/binance_api_candles',
-        'backintime/candles_providers/timeframe_dump',
-        'backintime/market_data_analyzer',
-        'backintime/market_data_storage',
-        'backintime/oscillators',
-        'backintime/timeframes_candle'
+        'backintime/broker/default',
+        'backintime/data',
+        'backintime/result'
         ],
     install_requires = [
         'certifi==2021.10.8',
