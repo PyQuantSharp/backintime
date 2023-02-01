@@ -30,7 +30,7 @@ The smaller timeframe is used, the more accurate the results will be.
 
 ## How to use
 
-Sample with MACD strategy is provided below. The strategy buys When the MACD line crosses from below to above the signal line, (i.e. histogram becomes non-zero), and sells when MACD line crosses from above to below the signal line. Note that this strategy results in a high losses and only provided as a reference. Generally no one uses only one indicator in a trading strategy. 
+Sample with MACD strategy is provided below. The strategy buys when the MACD line crosses from below to above the signal line, (i.e. histogram becomes non-zero), and sells when MACD line crosses from above to below the signal line. Note that this strategy results in a high losses and only provided as a reference. Generally no one uses only one indicator in a trading strategy. 
 ```py
 from datetime import datetime
 from backintime import TradingStrategy, run_backtest
@@ -262,9 +262,16 @@ In order for the strategy to get the correct values right from the start, prefet
 Where `since` date is the value of the argument `since` passed to the `run_backtest` function. 
 
 
+## Some thoughts
+
+I plan to add support for margin trading (will allow testing of short and leveraged strategies) 
+and implement backtesting as an event based system using a queue for communication 
+(will allow running backtesting on distributed systems).
+
+
 ## Docs
 
-There is no documentation yet because the code is unstable. As for now, you can browse sources or type `help` in REPL. 
+There is no documentation yet because the code is unstable (but works). As for now, you can browse sources or type `help` in REPL. 
 
 
 ## License
