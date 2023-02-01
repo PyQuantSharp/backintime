@@ -28,6 +28,12 @@ The smaller timeframe is used, the more accurate the results will be.
 - PIVOT - Pivot Points (Traditional, Fibonacci or Classic)
 
 
+## Installation
+```sh
+python3 -m pip install backintime
+```
+
+
 ## How to use
 
 Sample with MACD strategy is provided below. The strategy buys when the MACD line crosses from below to above the signal line, (i.e. histogram becomes non-zero), and sells when MACD line crosses from above to below the signal line. Note that this strategy results in a high losses and only provided as a reference. Generally no one uses only one indicator in a trading strategy. 
