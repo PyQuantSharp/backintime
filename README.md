@@ -3,8 +3,8 @@
 Such testing does not guarantee the same results in real trading, but it gives a rough estimate of a strategy's success.
 The smaller timeframe is used, the more accurate the results will be.
 
-> Branch for the new version (not yet released).  
-  Note: Margin trading is not supported as for now. Expected in 2.x releases.
+> Note: Margin trading is not supported as for now. Expected in 2.x releases.
+
 
 ## Features
 - Use CSV or Binance API as a data source
